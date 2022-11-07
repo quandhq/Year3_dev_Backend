@@ -13,7 +13,7 @@ from api import serializers
 class SensorMixinView(mixins.ListModelMixin,
                         generics.GenericAPIView):     #have to inherit this too
    # queryset = models.Sensor.objects.all()
-   queryset = models.Sensor.objects.order_by('-time') [:15]
+   queryset = models.Sensor.objects.order_by('time') [:15]
    serializer_class = serializers.SensorSerializer
    def get(self, request , *args, **kwargs):
       print(args,kwargs)
