@@ -1,4 +1,4 @@
-from .mqtt import client
+from .mqtt2 import Mqtt
 
-client.loop_start()
-
+client = Mqtt()
+client.run()

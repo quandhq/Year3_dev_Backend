@@ -13,12 +13,27 @@ from api import serializers
 class SensorMixinView(mixins.ListModelMixin,
                         generics.GenericAPIView):     #have to inherit this too
    # queryset = models.Sensor.objects.all()
-   queryset = models.Sensor.objects.order_by('time') [:15]
+   # queryset = models.Sensor.objects.order_by('-time')[:15]
    serializer_class = serializers.SensorSerializer
    def get(self, request , *args, **kwargs):
+      dict = kwargs
+      print(dict['id'])
+      self.queryset = models.Sensor.objects.filter(id=dict['id']).order_by('-time')[:15]
+      print(self.queryset)
+      print("YOLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
       print(args,kwargs)
       return self.list(request, *args, **kwargs)
    
+# def index(request):
+#    mydata = models.Sensor.objects.all().values()
+#    print(mydata[0])
+#    context = {
+#     'insert_me': mydata,
+#    }		
+#    #CÁI INSERT_ME CHÍNH LÀ CÁI VARIABLE Ở TRONG CÁI FILE INDEX.HTML TRÊN KIA
+
+#    return render(request, "api\main.html", context=context)
+
 def index(request):
    mydata = models.Sensor.objects.all().values()
    print(mydata[0])
@@ -27,4 +42,4 @@ def index(request):
    }		
    #CÁI INSERT_ME CHÍNH LÀ CÁI VARIABLE Ở TRONG CÁI FILE INDEX.HTML TRÊN KIA
 
-   return render(request, "api\main.html", context=context)
+   return render(request, "api/form.html", context=context)

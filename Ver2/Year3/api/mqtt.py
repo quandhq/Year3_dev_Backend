@@ -3,13 +3,13 @@ import json
 import psycopg2
 
 
+# mqtt_broker = "broker.mqttdashboard.com"
 mqtt_broker = "broker.hivemq.com"
-# mqtt_broker = "broker.broker.com"
 mqtt_port = 1883
 topic = "Year3"
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected successfully")
+    print("Connected successfully from mqtt.py")
     client.subscribe(topic)
 
 def insert_to_DB(data):
