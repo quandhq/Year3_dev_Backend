@@ -59,14 +59,15 @@ def publish(client, setPoint):
    result = client.publish(topic, msg)
    status = result[0]
    if status == 0:
-      print(f"Succesfully send '{msg}' to topic '{topic}'")
+      print(f"Succesfully send '{msg}' to topic '{topic}' PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
    else:
-      print(f"Fail to send '{msg}' to topic '{topic}'")
+      print(f"Fail to send '{msg}' to topic '{topic}' PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
 
 def run(setPoint):
    client = connect_mqtt()
    client.loop_start()
    publish(client, setPoint)
+   client.disconnect()
 # ____________________________________________________end____________________________________________________
 
 
@@ -87,7 +88,6 @@ class SensorMixinView(mixins.ListModelMixin,
       print(dict['id'])
       self.queryset = models.Sensor.objects.filter(id=dict['id']).order_by('-time')[:15]
       print(self.queryset)
-      print("YOLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
       print(args, kwargs)
       return self.list(request, *args, **kwargs)     
    
@@ -116,7 +116,7 @@ def kriging(request, *args, **kwargs):
    print(new_var)
    k = Kriging(100,80, new_var, default_X,default_Y)
    test = k.interpolation()
-   response = {'data': test[2], 'resolutionX': test[0], 'resolutionY': test[1]}
+   response = {'data': test[2], 'resolutionX': k.resolutionX, 'resolutionY': k.resolutionY}
    return JsonResponse(response)
 
 
