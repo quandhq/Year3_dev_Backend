@@ -29,12 +29,14 @@ def publish(client):
    msg_count = 0
    while True:
       date = datetime.datetime.utcnow()
+      print(date)
       utc_time = calendar.timegm(date.utctimetuple())
-
+      print(utc_time)
       new_data = {
                      'operator':'senData',
                      'infor':{
-                        'id':random.randint(1,8),
+                        # 'id':random.randint(1,8),
+                        'id':1,
                         'time':utc_time,
                         'red':random.randint(0,3000),
                         'green':random.randint(0,3000),
@@ -57,9 +59,11 @@ def publish(client):
       result = client.publish(topic, msg)
       status = result[0]
       if status == 0:
-         print(f"Succesfully send '{msg}' to topic '{topic}'")
+         # print(f"Succesfully send '{msg}' to topic '{topic}'")
+         pass
       else:
-         print(f"Fail to send '{msg}' to topic '{topic}'")
+         # print(f"Fail to send '{msg}' to topic '{topic}'")
+         pass
       msg_count += 1
 
 def run():
