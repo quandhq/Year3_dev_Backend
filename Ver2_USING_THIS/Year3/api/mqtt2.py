@@ -6,13 +6,21 @@ import json
 #-----------------------------THIS ONE IS CURRENTLY USED---------------------------------------
 
 class Mqtt():
-   mqtt_broker = "broker.hivemq.com"
+   #turn on emqx on laptop first "emqx start", be careful that this ip is random whenever we reconnect to the internet
+   mqtt_broker = "172.19.200.236"         
    mqtt_port = 1883
-   topic = "Year3"
+   topic = "Year3/Gateway"
    # generate client ID with pub prefix randomly
    client_id = f'python-mqtt-{random.randint(0, 100)}'
    # username = 'emqx'
    # password = 'public'
+   def __init__(self, 
+               __mqtt_broker = "172.19.200.236", 
+               __mqtt_port = 1883, 
+               __topic = "Year3/Gateway"):
+      self.mqtt_broker = __mqtt_broker
+      self.mqtt_port = __mqtt_port
+      self.topic = __topic
 
 
    def connect_mqtt(self):
@@ -31,11 +39,11 @@ class Mqtt():
    def insert_to_DB(self,data):
       conn = psycopg2.connect(
             database = 'year3',
-         user = 'quan',
-         password = '1',
-         host = 'localhost',
-         port = '5432',
-      )
+            user = 'quan',
+            password = '1',
+            host = 'localhost',
+            port = '5432',
+         )
 
       conn.autocommit = True
       cursor = conn.cursor()
@@ -49,22 +57,45 @@ class Mqtt():
 
       conn.close()
 
-   def subscribe(self, client):
-      def on_message(client, userdata, msg):
-         print(f"RRRRRRRRRRRRRRRReceived `{msg.payload.decode()}` from `{msg.topic}` topic")
-         msg_str = msg.payload.decode("UTF-8")
-         msg_json = json.loads(msg_str)
-         self.insert_to_DB(msg_json)
-         print(msg_json['infor']['time'])
+   # def subscribe(self, client):
+   #    def on_message(client, userdata, msg):
+   #       print(f"RRRRRRRRRRRRRRRReceived `{msg.payload.decode()}` from `{msg.topic}` topic")
+   #       msg_str = msg.payload.decode("UTF-8")
+   #       msg_json = json.loads(msg_str)
+   #       self.insert_to_DB(msg_json)
+   #       print(msg_json['infor']['time'])
 
-      client.subscribe(self.topic)
-      client.on_message = on_message
+   #    client.subscribe(self.topic)
+   #    client.on_message = on_message
+
+
+   # def run(self):
+   #    client = self.connect_mqtt()
+   #    self.subscribe(client)
+   #    client.loop_start()
+
+#___________________try new code: try exception______________
+   def subscribe(self, client):
+         def on_message(client, userdata, msg):
+            print(f"RRRRRRRRRRRRRRRReceived `{msg.payload.decode()}` from `{msg.topic}` topic")
+            msg_str = msg.payload.decode("UTF-8")
+            msg_json = json.loads(msg_str)
+            if not msg_json:
+               print("Did not receive anything!")
+            else:
+               self.insert_to_DB(msg_json)
+               print("INSERT SUCCESSFULLY!!!!!!!!")
+               print(msg_json['infor']['time'])
+         client.subscribe(self.topic)
+         client.on_message = on_message
 
 
    def run(self):
       client = self.connect_mqtt()
       self.subscribe(client)
-      client.loop_start()
+      # client.loop_forever() #loop forever will trap the program in the loop forever
+      client.loop_start()     #this will create a new thread that process the loop of mqtt which will not trap the program
+
 
 
 # if __name__ == '__main__':

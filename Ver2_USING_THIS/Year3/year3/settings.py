@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
+import datetime
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR = Path(__file__).resolve().parent.parent             #MAIN BASEDIR
@@ -44,12 +45,40 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     #internal apps
-    'corsheaders', #add this for error not being able to call API from django
     'api',
     #external libraries
     'rest_framework',
-    
+    'corsheaders', #add this for error not being able to call API from django
+    'rest_framework.authtoken',     #need this app to handle token database for us and create view for handling token for us
+    'rest_framework_simplejwt',     #this is simplejwt for managing token-authentication for us
 ]
+
+#add this for error not being able to call API from django 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",    #allow react server on local machine to call this django-server
+]
+
+"""
+*brief: this is to declare that "globally all of our API will be wrapped in  what kind of authenication
+        and what kind of permission"
+"""
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',    #simplejwt third party
+#         'rest_framework.authentication.TokenAuthentication',
+#     ],
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.IsAuthenticated',
+#     ]
+# } 
+
+"""
+*brief: this is to declare the time expiring of the access-token and refreshing token of simplejwt application
+"""
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(hours=1),
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -62,10 +91,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-#add this for error not being able to call API from django 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
 #-------------------------------------------------------------------
 
 ROOT_URLCONF = 'year3.urls'

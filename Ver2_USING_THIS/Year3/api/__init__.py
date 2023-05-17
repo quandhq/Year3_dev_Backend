@@ -1,4 +1,7 @@
 from .mqtt2 import Mqtt
+import sys
 
-client = Mqtt()
-client.run()
+# if 'runserver' in sys.argv:
+#     print("Running __init__.py ............")
+#     client = Mqtt()
+#     client.run()
