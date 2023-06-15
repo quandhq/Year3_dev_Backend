@@ -8,7 +8,7 @@ import datetime
 class RandomDataToMQTT:
    mqtt_broker = "desktop-rjl9d4n" #localhost      #this is default ip of our computer
    mqtt_port = 1883             #1883 is for TCP port
-   topic = "farm/1/monitor"   # "farm/{farm_id}/{sensor_id}"
+   topic = "farm/1/monitor/process"   # "farm/{farm_id}/{sensor_id}"
 
    client_id = f'python-mqtt-{random.randint(0,1000)}'
    # client_id = 'clientId-dhhSHVoTBA'
@@ -40,17 +40,16 @@ class RandomDataToMQTT:
          print(date)
          utc_time = calendar.timegm(date.utctimetuple())
          print(utc_time)
-         new_data =  { 
-                        "operator": "sensorData", 
+         new_data = { 
+                        "operator": "actuatorData", 
                         "status": 0, 
                         "info": 
                         { 
-                           'co2':random.randint(0,3000), 
-                           "temp":round(random.uniform(1, 100),2), 
-                           "hum": round(random.uniform(1, 100),2), 
-                           "time": utc_time 
+                            "state": round(random.uniform(0,1)), 
+                            "speed": round(random.uniform(1, 100)), 
+                            "time": utc_time 
                         } 
-                     } 
+                    } 
 
          time.sleep(2)
          msg = json.dumps(new_data)

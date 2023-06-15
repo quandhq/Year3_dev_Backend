@@ -5,6 +5,7 @@ from api import models
 
 class SensorSerializer(serializers.ModelSerializer):
    class Meta:
-      model = models.Sensor
-      # fields = ['time', 'temperature', 'humidity', 'light', 'dust', 'sound', 'red', 'green', 'blue', 'co2', 'tvoc', 'id']
-      fields = '__all__'
+      pass
+      # model = models.Sensor
+      # # fields = ['time', 'temperature', 'humidity', 'light', 'dust', 'sound', 'red', 'green', 'blue', 'co2', 'tvoc', 'id']
+      # fields = '__all__'

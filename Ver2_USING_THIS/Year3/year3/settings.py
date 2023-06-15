@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 import datetime
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR = Path(__file__).resolve().parent.parent             #MAIN BASEDIR
 
@@ -33,7 +34,7 @@ SECRET_KEY = 'django-insecure-lvmv%!as*-*mh#s69am))4x#&f0vkqy(-i0wd4*(t=qnh!oj%9
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+#'10.14.50.95', '127.0.0.1', '*'
 
 # Application definition
 
@@ -53,10 +54,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',     #this is simplejwt for managing token-authentication for us
 ]
 
-#add this for error not being able to call API from django 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",    #allow react server on local machine to call this django-server
-]
 
 """
 *brief: this is to declare that "globally all of our API will be wrapped in  what kind of authenication
@@ -91,6 +88,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ORIGIN_ALLOW_ALL = True    #add this to allow all host without cor-header to call to Django
+
+#add this for error not being able to call API from django 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",    #allow react server on local machine to call this django-server
+    # "http://127.0.0.1:8080,"
+]
+
 #-------------------------------------------------------------------
 
 ROOT_URLCONF = 'year3.urls'
@@ -120,7 +125,7 @@ WSGI_APPLICATION = 'year3.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'year3',
+        'NAME': 'farm',
         'USER': 'quan',
         'PASSWORD': '1',
         'HOST': 'localhost',
@@ -168,4 +173,4 @@ STATIC_URL = 'static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'    
