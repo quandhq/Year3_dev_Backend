@@ -8,6 +8,10 @@ import time
 
 #-----------------------------THIS ONE IS CURRENTLY USED---------------------------------------
 
+broker = "27.71.227.1"
+
+
+
 class Mqtt():
    #turn on emqx on laptop first "emqx start", be careful that this ip is random whenever we reconnect to the internet
    mqtt_broker = "172.19.200.236"         
@@ -134,17 +138,18 @@ class Mqtt():
 
 
 
+
 if __name__ == '__main__':
    process_list = []
    thread_list = []
    
-   client_1 = Mqtt("localhost", 
+   client_1 = Mqtt(broker, 
                    1883, 
                    "farm/1/monitor",
                    'api_sensormonitor')
    # client_1.run()
    print("Start client 1!!!")
-   client_2 = Mqtt("localhost",
+   client_2 = Mqtt(broker,
                    1883,
                    "farm/1/monitor/process",
                    'api_actuatormonitor')

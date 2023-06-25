@@ -4,10 +4,12 @@ import calendar
 import json
 import psycopg2
 
+broker = "27.71.227.1"
+
 client = Client()
-mqtt_broker = "localhost"       #change this to public host of emqx on our machine
+mqtt_broker = broker       #change this to public host of emqx on our machine
 mqtt_port = 1883
-client.connect(mqtt_broker, mqtt_port)
+client.connect(mqtt_broker, int(mqtt_port), 60)
 mqtt_topic = "farm/1/control"
 client.subscribe(mqtt_topic)
 client.loop_start()
