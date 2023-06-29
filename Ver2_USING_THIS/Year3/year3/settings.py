@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 import datetime
 
+DEBUG_MODE = False
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR = Path(__file__).resolve().parent.parent             #MAIN BASEDIR
@@ -31,9 +32,9 @@ TEMPLATE_DIR = os.path.join(BASE_DIR,"templates")
 SECRET_KEY = 'django-insecure-lvmv%!as*-*mh#s69am))4x#&f0vkqy(-i0wd4*(t=qnh!oj%9'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True if (DEBUG_MODE == True) else False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['27.71.227.1']
 #'10.14.50.95', '127.0.0.1', '*'
 
 # Application definition

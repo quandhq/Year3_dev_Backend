@@ -143,13 +143,13 @@ if __name__ == '__main__':
    process_list = []
    thread_list = []
    
-   client_1 = Mqtt(broker, 
+   client_1 = Mqtt("27.71.227.1", 
                    1883, 
                    "farm/1/monitor",
                    'api_sensormonitor')
    # client_1.run()
    print("Start client 1!!!")
-   client_2 = Mqtt(broker,
+   client_2 = Mqtt("27.71.227.1",
                    1883,
                    "farm/1/monitor/process",
                    'api_actuatormonitor')
@@ -172,3 +172,5 @@ if __name__ == '__main__':
    #    i.join()   
 
 # cd Year3_dev_Backend\Ver2_USING_THIS\Year3\api
+
+
