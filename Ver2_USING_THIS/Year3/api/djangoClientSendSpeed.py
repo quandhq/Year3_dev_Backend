@@ -5,13 +5,13 @@ import json
 import psycopg2
 
 broker = "27.71.227.1"
+mqtt_topic = "farm/1/control"
 
-client = Client()
+client = Client(mqtt_topic)
 mqtt_broker = broker       #change this to public host of emqx on our machine
 mqtt_port = 1883
 client.connect(mqtt_broker, int(mqtt_port), 60)
-mqtt_topic = "farm/1/control"
-client.subscribe(mqtt_topic)
+# client.subscribe(mqtt_topic)
 client.loop_start()
 print("Done setting up client...")
 
@@ -61,9 +61,9 @@ def send_setpoint_to_mqtt(client: Client, data: dict, farm_id: int):
 #                     }
 #                     key can be "co2" or "temp" or "speed"
 def insert_to_table_ControlSetpoint(data,
-                     __database='farm', 
-                     __user='quan', 
-                     __password='1', 
+                     __database='smartfarm', 
+                     __user='year3', 
+                     __password='year3', 
                      __host='localhost', 
                      __port='5432') -> None:
       conn = psycopg2.connect(

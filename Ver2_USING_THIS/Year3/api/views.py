@@ -421,4 +421,19 @@ def test_url_dispatching(request, *arg, **kwargs):
    
    return JsonResponse({"Result": "Successful"})
 
+
+from .processDataChart import getOptionDayData
+@api_view(["POST", "GET"])
+def historyChart(request, *args, **kwargs):
+   if("option" in request.GET):
+      option = request.GET.get("option")
+      farm_id = request.GET.get("farm_id")
+      time_start = int(request.GET.get("time_start"))
+      time_end = int(request.GET.get("time_end"))
+      print(option, farm_id, time_start, time_end)
+      result_data = None
+      if(option == "day"): 
+         result_data = getOptionDayData(time_start)
+   return JsonResponse(result_data)
+
    

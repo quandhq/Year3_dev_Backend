@@ -56,10 +56,10 @@ def insert_to_DB(topic,
     
 
 def run(topic):
-    client = mqtt.Client()
+    client = mqtt.Client(topic)
     client.connect(broker, int(1883), 60)
     # client.subscribe("farm/1/control")
-    client.subscribe(topic)
+    # client.subscribe(topic)
 
     client.loop_start()
 

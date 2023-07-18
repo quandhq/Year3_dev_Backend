@@ -5,7 +5,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     # path('get/<int:year>/<int:month>/<slug:slug>/', views.SensorMixinView.as_view()),
-    # path('get/secondly_data/<int:id>', views.getSensorSecondlyData),
+    path('v1.1/monitor/data/<int:id>', views.getSensorSecondlyData),
+    path('v1.1/monitor/data/history', views.historyChart),
     path('get/daily_data/<int:id>', views.getSensorDailyData),
     path('get/kriging', views.kriging),
     # path('set/<int:param>', views.send_set_point), #view to send setpoint to sensor
