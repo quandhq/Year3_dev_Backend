@@ -14,7 +14,7 @@ from pathlib import Path
 import os
 import datetime
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR = Path(__file__).resolve().parent.parent             #MAIN BASEDIR
@@ -60,15 +60,15 @@ INSTALLED_APPS = [
 *brief: this is to declare that "globally all of our API will be wrapped in  what kind of authenication
         and what kind of permission"
 """
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': [
-#         'rest_framework_simplejwt.authentication.JWTAuthentication',    #simplejwt third party
-#         'rest_framework.authentication.TokenAuthentication',
-#     ],
-#     'DEFAULT_PERMISSION_CLASSES': [
-#         'rest_framework.permissions.IsAuthenticated',
-#     ]
-# } 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',    #simplejwt third party
+        # 'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        # 'rest_framework.permissions.IsAuthenticated',
+    ]
+} 
 
 """
 *brief: this is to declare the time expiring of the access-token and refreshing token of simplejwt application

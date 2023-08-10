@@ -44,10 +44,10 @@ class SetPoint():
         result = client.publish(self.topic, msg)
         status = result[0]
         if status == 0:
-            print(f"Succesfully send '{msg}' to topic '{self.topic}' PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
+            print(f"Succesfully send '{msg}' to topic '{self.topic}' ")
         else:
-            print(f"Fail to send '{msg}' to topic '{self.topic}' PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
-            raise Exception(f"Fail to send '{msg}' to topic '{self.topic}' PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
+            print(f"Fail to send '{msg}' to topic '{self.topic}' ")
+            raise Exception(f"Fail to send '{msg}' to topic '{self.topic}' ")
 
     def run(self, setPoint):
         client = self.connect_mqtt()

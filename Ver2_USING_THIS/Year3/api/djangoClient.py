@@ -89,24 +89,6 @@ class Mqtt():
          cursor.close()
          conn.close()
 
-   # def subscribe(self, client):
-   #    def on_message(client, userdata, msg):
-   #       print(f"RRRRRRRRRRRRRRRReceived `{msg.payload.decode()}` from `{msg.topic}` topic")
-   #       msg_str = msg.payload.decode("UTF-8")
-   #       msg_json = json.loads(msg_str)
-   #       self.insert_to_DB(msg_json)
-   #       print(msg_json['infor']['time'])
-
-   #    client.subscribe(self.topic)
-   #    client.on_message = on_message
-
-
-   # def run(self):
-   #    client = self.connect_mqtt()
-   #    self.subscribe(client)
-   #    client.loop_start()
-
-#___________________try new code: try exception______________
    def subscribe(self, client):
          def on_message(client, userdata, msg):
             print(f"RRRRRRRRRRRRRRRReceived `{msg.payload.decode()}` from `{msg.topic}` topic")
@@ -132,8 +114,6 @@ class Mqtt():
       # client.loop_forever() #loop forever will trap the program in the loop forever
       client.loop_start()     #this will create a new thread that process the loop of mqtt which will not trap the program
       while True:
-         # print(f"IN client loop {i}")
-         # time.sleep(0.5)
          continue
 
 
@@ -147,13 +127,11 @@ if __name__ == '__main__':
                    1883, 
                    "farm/1/monitor",
                    'api_sensormonitor')
-   # client_1.run()
    print("Start client 1!!!")
    client_2 = Mqtt("27.71.227.1",
                    1883,
                    "farm/1/monitor/process",
                    'api_actuatormonitor')
-   # client_2.run()
    print("Start client 2!!!")
    process_list.append(multiprocessing.Process(target=client_1.run, args=(1,)))
    process_list.append(multiprocessing.Process(target=client_2.run, args=(2,)))
@@ -165,12 +143,5 @@ if __name__ == '__main__':
       i.start()
    for i in process_list:
       i.join()
-
-   # for i in thread_list:
-   #    i.start()
-   # for i in thread_list:
-   #    i.join()   
-
-# cd Year3_dev_Backend\Ver2_USING_THIS\Year3\api
 
 

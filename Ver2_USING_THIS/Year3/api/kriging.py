@@ -16,7 +16,7 @@ one_point_Y = 1.25
 
 class Kriging:
    #--------------------------------resolution---------------------------------------
-   resolution = 100 #hình như cái này mình không dùng
+   resolution = 100 
    resolutionX = 100
    resolutionY = 80
    #---------------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class Kriging:
       #datax, datay are (x,y) of all points that we have
       #uknownX and uknownY are the (x,y) of the unknown point
       #Variable hình như là value của các điểm
-      Var1 = np.reshape(Variable, (Variable.shape[0],1)) #cái này hình như thừa 
+      Var1 = np.reshape(Variable, (Variable.shape[0],1))
       Var1 = Variable.transpose()
       matdist_N = self.distancematrix(datax, datay)
       matdist_U = self.distancetoU(uknownX, uknownY, datax, datay)
@@ -100,8 +100,7 @@ class Kriging:
       inv_N_SV = np.linalg.inv(N_SV)         #ma trận nghịch đảo của cái ma trận lớn
       Weights = np.matmul(inv_N_SV,U_SV)    #nhân ma trận nghịch đảo với cái ma trận 1 cột
       Weights = np.delete(Weights, Weights.shape[0]-1, 0)   
-      #vì cái ma trận 1 cột của cái unknown-matrix có cái số 1 nên là ma trận weight cũng sẽ có một cái w5 thừa, xóa nó đi
-      Estimation = np.dot(Var1, Weights)  #hình như nhân cái Weights với lại cái Variable
+      Estimation = np.dot(Var1, Weights) 
       return Estimation[0] 
 
 
@@ -109,8 +108,6 @@ class Kriging:
       Variable = self.Var
       ResolutionX = self.resolutionX
       ResolutionY = self.resolutionY
-      # X_mesh = np.linspace(np.amin(X)-1, np.amax(X) + 1, Resolution)
-      # Y_mesh = np.linspace(np.amin(Y)-1, np.amax(Y) + 1, Resolution)
       X_mesh = np.linspace(0, 9, ResolutionX)   
       Y_mesh = np.linspace(0, 4, ResolutionY)    
       XX, YY = np.meshgrid(X_mesh, Y_mesh)
@@ -121,13 +118,6 @@ class Kriging:
          EX.append(float(x))
       for y in np.nditer(YY):
          EY.append(float(y))
-      # print("This is EX")
-      # print(EX)
-      # print(len(EX))
-      # print("This is EY")
-      # print(EY)
-      # print(len(EY))
-      # input()
       Grid1 = pd.DataFrame(data={'X':EX, 'Y':EY})
       for index, rows in Grid1.iterrows():
          estimated = self.OK(rows['X'], rows['Y'])
@@ -139,53 +129,6 @@ class Kriging:
       return [EX, EY, EZ]
       # return Grid
 
-
-
-# k = Kriging(100, 60, Var, default_X, default_Y)
-
-
-
-# #------------------------------------plot points-------------------------------------------
-# # cax = plt.scatter(X, Y, c=Var)
-# # cbar = plt.colorbar(cax, fraction=0.1)
-# # plt.title('Measured points')
-# # plt.show()           #plt will not show without this
-# #------------------------------------------------------------------------------------------
-
-# #-------------------------kriging interporlation for all points in map---------------------
-# test = k.interpolation()
-# """test is a an array that contains 3 sub-arrays: x-asis array, y-asis array and value array
-# >>go to line 90 for more information"""
-# #------------------------------------------end---------------------------------------------
-
-
-# x = np.array(test[0])
-# y = np.array(test[1])
-# z = np.array(test[2])
-# """ĐÂY KHÔNG CHIA ĐƯỢC RA THEO CỘT RIÊNG HÀNG RIÊNG LÀ DO THẰNG LÌN  DƯỚI NÀY, 
-# trước đảo X, Y lại cho nhau nên lỗi"""
-# # z = z.reshape(resolutionY, resolutionX)  
-
-
-# # #-----------------------------------------seaborn-----------------------------------------------
-# # fig, ax1 = plt.subplots(figsize=(18, 8))
-# # # sns.heatmap(z, ax=ax1, cbar=True, annot=True,  fmt=".2f", cmap= "coolwarm")  #có số, vẽ với màu cho nhiệt độ
-# # # sns.heatmap(z, ax=ax1, cbar=True, annot=True,  fmt=".2f", cmap= sns.color_palette("Greys", as_cmap=True))  #vẽ với màu cho dust
-# # # sns.heatmap(z, ax=ax1, cbar=True, cmap= "coolwarm")
-# # sns.heatmap(z, ax=ax1, cbar=True, cmap= sns.color_palette("Greys", as_cmap=True))  #vẽ với màu cho dust, không có số
-# # ax1.invert_yaxis()
-# # #------------------------------------------end--------------------------------------------------
-
-
-
-# # # # res = np.array([z[x:x+20] for x in range(0, len(z), 20)])
-# # # # z_min, z_max = -np.abs(z).max(), np.abs(z).max()
-# # # c = plt.imshow(z, cmap ='Reds', vmin = np.array(test[2]).min(), vmax = np.array(test[2]).max(),
-# # #                extent =[x.min(), x.max(), y.min(), y.max()],
-# # #                   interpolation ='nearest', origin ='lower')                 
-# # # plt.colorbar(c)
-# # plt.title('PM2.5 distribution at 13pm on 08/10', fontweight ="bold")
-# # plt.show()
 
 
 

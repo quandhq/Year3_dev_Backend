@@ -6,11 +6,9 @@ from unittest.util import _MAX_LENGTH
 from django.db import models
 from django.conf import settings
 
-User = settings.AUTH_USER_MODEL     #auth.User        #trying to presnet user name to Sensor model
+User = settings.AUTH_USER_MODEL     #auth.User    
 
 # Create your models here.
-
-#>>>>>>>>>>>>>>>>>>>>>>>>can not migrate table to postgresql<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 # class User(models.Model):
 #    user_id = models.IntegerField(primary_key = True)

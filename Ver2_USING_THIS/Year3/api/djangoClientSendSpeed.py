@@ -11,7 +11,6 @@ client = Client(mqtt_topic)
 mqtt_broker = broker       #change this to public host of emqx on our machine
 mqtt_port = 1883
 client.connect(mqtt_broker, int(mqtt_port), 60)
-# client.subscribe(mqtt_topic)
 client.loop_start()
 print("Done setting up client...")
 
@@ -73,10 +72,8 @@ def insert_to_table_ControlSetpoint(data,
             host = __host,
             port = __port,
          )
-      # lock = 
       conn.autocommit = True
       cursor = conn.cursor()
-      # with self.lock:
       query = f'''INSERT INTO api_controlsetpoint (node_id_id, option, aim, value, time) 
                VALUES (%s, %s, %s, %s ,%s)'''
       record = ()
