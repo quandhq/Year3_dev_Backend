@@ -5,7 +5,7 @@ import json
 import psycopg2
 
 broker = "27.71.227.1"
-mqtt_topic = "farm/1/control"
+mqtt_topic = "farm/control"
 
 client = Client(mqtt_topic)
 mqtt_broker = broker       #change this to public host of emqx on our machine
@@ -15,8 +15,8 @@ client.connect(mqtt_broker, int(mqtt_port), 60)
 client.loop_start()
 print("Done setting up client...")
 
-def send_setpoint_to_mqtt(client: Client, data: dict, farm_id: int):
-    mqtt_topic = f"farm/{farm_id}/control"
+def send_setpoint_to_mqtt(client: Client, data: dict):
+    mqtt_topic = f"farm/control"
     date = datetime.datetime.utcnow()
     print(date)
     utc_time = calendar.timegm(date.utctimetuple())
@@ -38,11 +38,14 @@ def send_setpoint_to_mqtt(client: Client, data: dict, farm_id: int):
                 "option": option, 
                 "info": 
                 { 
+                    "room_id": data["room_id"],           #!< FIX !!!!!: ADD FARM_ID TO THIS 
+                    "node_id": 0,
                     key: data[key],
                     # "key": 123,
                     "time": utc_time, 
                 } 
             }
+    
     msg = json.dumps(new_data)
     result = client.publish(mqtt_topic, msg)
     status = result[0]
@@ -79,20 +82,20 @@ def insert_to_table_ControlSetpoint(data,
       # with self.lock:
       record = ()
       if data['option'] == "manual":
-         query = f'''INSERT INTO api_controlsetpoint (node_id, option, aim, value, time) 
-               VALUES (%s, %s, %s, %s ,%s)'''
-         mqtt_topic = "farm/1/control"
+         query = f'''INSERT INTO api_controlsetpoint (room_id, node_id, option, aim, value, time) 
+               VALUES (%s, %s, %s, %s, %s ,%s)'''
+         mqtt_topic = "farm/control"
          date = datetime.datetime.utcnow()
          print(date)
          utc_time = calendar.timegm(date.utctimetuple())
-         record = (10, "manual", "speed", data['speed'], utc_time)
+         record = (data['room_id'], 10, "manual", "speed", data['speed'], utc_time)
          cursor.execute(query, record)
          print("Successfully insert SET POINT SPEED DATA to PostgreSQL TIME: " + str(utc_time))
          cursor.close()
          conn.close()
       elif data["option"] == "auto":
          query = f'''INSERT INTO api_controlsetpoint (room_id, option, aim, value, time) 
-               VALUES (%s, %s, %s, %s ,%s)'''
+               VALUES (%s, %s, %s, %s, %s ,%s)'''
          key = ""
          if "temp" in data:
             key = "temp"

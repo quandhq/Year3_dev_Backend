@@ -16,7 +16,8 @@ conn = psycopg2.connect(
          )
 
 data = {
-    "operator": "sync_room",
+    "operator": "room_sync",
+    "status": 0,
     "info": 
     {
         "room_id": 1,
@@ -30,10 +31,10 @@ data = {
                 "y_axis": 6,
             },
             {
-                "node_id": 25,
+                "node_id": 3,
                 "function": "sensor",
-                "x_axis": 6,
-                "y_axis": 6,
+                "x_axis": 7,
+                "y_axis": 7,
             },
         ]
     }

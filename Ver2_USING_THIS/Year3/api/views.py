@@ -68,7 +68,7 @@ def getSensorSecondlyData(request , *args, **kwargs):     #have to inherit this 
       new_query[i].reverse()
    print(query_sample[0].time)
    print(args, kwargs)
-   return RestFrameworkResponse(new_query, status=RestFrameworkStatus.HTTP_200_OK)      
+   return RestFrameworkResponse(new_query, status=RestFrameworkStatus.HTTP_200_OK)     
       
 
 #___________________________________________________________________end__________________________________________________________________

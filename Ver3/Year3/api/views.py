@@ -24,6 +24,7 @@ import calendar
 from api.models import Room, Registration, RawSensorMonitor
 from api.serializers import RoomSerializer, RegistrationSerializer
 from api.serializers import RawSensorMonitorSerializer ,RawActuatorMonitorSerializer 
+import pandas as pd
 
 print("This is in view.py")
 
@@ -31,7 +32,7 @@ print("This is in view.py")
 
 
 #______________________________________view_for_testing_authentication______________________________________________
-
+#_______________________________________CURRENLTY NOT USING THIS__________________________________________
 @api_view(["POST", "GET"])
 # @permission_classes([permissions.IsAuthenticated])
 # @authentication_classes([authentication.TokenAuthentication])
@@ -40,7 +41,7 @@ def getAuthenticationSensorSecondlyData(request , *args, **kwargs):     #have to
    # queryset = models.Sensor.objects.order_by('-time')[:15]
    print(request.GET.get("farm_id"))
    print("This is in API secondly data")
-   query_sample = models.RawSensorMonitor.objects.filter(node_id_id=1).order_by('-time')[:15]
+   query_sample = models.RawSensorMonitor.objects.filter(node_id=1).order_by('-time')[:15]
    new_query = {"co2":[], "temp":[],"hum":[], "time":[]}
    for i in query_sample:
       new_query["co2"].append(i.co2)
@@ -59,38 +60,52 @@ def getAuthenticationSensorSecondlyData(request , *args, **kwargs):     #have to
 
 #_________________________________________________end_______________________________________________________________
 
-#____________________________________________________________________test for return data with function-base-view__________________________
 
 ###############################################################
 # @brief: view for sending secondly data for chart on front-end
+# @return: The json-formatted data that is returned to front-end
+#           will have a for like this:
+#           {"green":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+#              "hum":[91.0,91.0,91.0,91.0,91.0,91.0,91.0,91.0,91.0,91.0,91.0,91.0,91.0,91.0,91.0],
+#              "tvoc":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+#              "sound":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+#              "red":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+#              "light":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+#              "co2":[6666,6666,6666,6666,6666,6666,6666,6666,6666,6666,6666,6666,6666,6666,6666],
+#              "blue":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+#              "motion":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+#              "time":[20,20,20,20,20,20,20,20,20,20,20,20,20,20,20],
+#              "temp":[32.0,32.0,32.0,32.0,32.0,32.0,32.0,32.0,32.0,32.0,32.0,32.0,32.0,32.0,32.0],
+#              "dust":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]}
 ###############################################################
 @api_view(["POST", "GET"])
 # @authentication_classes([jwtauthentication.JWTAuthentication])
 # @permission_classes([permissions.IsAuthenticated])
-def getSensorSecondlyData(request , *args, **kwargs):     #have to inherit this too
-   # queryset = models.Sensor.objects.all()
-   # queryset = models.Sensor.objects.order_by('-time')[:15]
-   print(request.GET.get("farm_id"))
+def getSensorSecondlyData(request , *args, **kwargs):    
+   room_id = request.GET.get("room_id")
+   print(room_id)
    print("This is in API secondly data")
-   query_sample = None
-   if models.RawSensorMonitor.objects.all().count() > 15:
-      query_sample = models.RawSensorMonitor.objects.filter(node_id_id=1).order_by('-time')[:15]
+   parameter_key_list = ["co2", "temp", "hum", "light", 
+                         "dust", "sound", "red", "green", 
+                         "blue", "tvoc", "motion", "time"]
+   if models.RawSensorMonitor.objects.filter(room_id=room_id).count() > 15:
+      query_sample = models.RawSensorMonitor.objects.filter(room_id=room_id).order_by('-time')[:15]
+      data_serializer = RawSensorMonitorSerializer(query_sample, many=True,).data #!< have to add many=True
+      print(data_serializer)
+      data_serializer.reverse()
+      data_return = {}
+      for i in parameter_key_list:
+         data_return[i] = []
+      for i in data_serializer:  #!< iterate through 15 elements
+         for j in data_return: #!< iterate through all keys of data_return
+            if j in i:          #!< if i contain the key "j"
+               data_return[j].append(i[j])
+            else:
+               data_return[j].append(0)
+      return Response(data_return, status=status.HTTP_200_OK)    
    else:
-      return JsonResponse({"co2":[], "temp":[],"hum":[], "time":[]})
-   new_query = {"co2":[], "temp":[],"hum":[], "time":[]}
-   for i in query_sample:
-      new_query["co2"].append(i.co2)
-      new_query["temp"].append(i.temp)
-      new_query["hum"].append(i.hum)
-      new_query["time"].append(i.time)
-   #reverse all array in new_query
-   for i in new_query:
-      new_query[i].reverse()
-   print(query_sample[0].time)
-   print(args, kwargs)
-   # return self.list(request, *args, **kwargs)
-   # return Response(new_query, status=status.HTTP_200_OK)  
-   return JsonResponse(new_query)    
+      result_return = {i:[] for i in parameter_key_list}
+      return Response(result_return, status=status.HTTP_200_OK)
       
 
 #___________________________________________________________________end__________________________________________________________________
@@ -106,14 +121,11 @@ from .djangoClientSendSpeed import client as setpoint_client
 ###############################################################
 @api_view(["POST"])
 def send_setpoint(request, *arg, **kwargs):
-   print(request.GET)
-   farm_id = request.GET.get("farm_id")
-   print(farm_id)
    monitor_data = json.loads(request.body)
    print(monitor_data)
    # print(request.data)
    insert_to_table_ControlSetpoint(monitor_data)
-   send_setpoint_to_mqtt(setpoint_client, monitor_data, farm_id)
+   send_setpoint_to_mqtt(setpoint_client, monitor_data)
    return Response({"Result": "Successful send setpoint"}, status=status.HTTP_200_OK)      
 
 # #*brief: view sending setPoint to sensors
@@ -229,20 +241,21 @@ from .processDataChart import getOptionDayData, getOptionMonthData, getOptionYea
 @api_view(["POST", "GET"])
 def historyChart(request, *args, **kwargs):
    if("option" in request.GET):
-      option = request.GET.get("option")
-      farm_id = request.GET.get("farm_id")
-      time_start = int(request.GET.get("time_start"))
-      time_end = int(request.GET.get("time_end"))
-      print(option, farm_id, time_start, time_end)
+      option = request.GET.get("option")  #!< query parameter inside an URL is a string not a integer
+      room_id = request.GET.get("room_id")   #!< query parameter inside an URL is a string not a integer
+      node_id = request.GET.get("node_id")   #!< query parameter inside an URL is a string not a integer
+      time_start = request.GET.get("time_start")   #!< query parameter inside an URL is a string not a integer
+      time_end = request.GET.get("time_end") #!< query parameter inside an URL is a string not a integer
+      print(str(option), int(room_id), int(node_id), int(time_start), int(time_end))
       result_data = None
       if(option == "day"): 
-         result_data = getOptionDayData(time_start)
+         result_data = getOptionDayData(int(time_start), int(room_id), int(node_id))
          return Response(result_data, status=status.HTTP_200_OK)      
       elif(option == "month"):
-         result_data = getOptionMonthData(time_start, time_end)
+         result_data = getOptionMonthData(int(time_start), int(time_end), int(room_id), int(node_id))
          return Response(result_data, status=status.HTTP_200_OK)       
       elif(option == "year"):
-         result_data = getOptionYearData(time_start, time_end)
+         result_data = getOptionYearData(int(time_start), int(time_end), int(room_id), int(node_id))
          return Response(result_data, status=status.HTTP_200_OK)       
       else:
          return Response({"Response": "Option provided is NOT valid"}, status=status.HTTP_400_BAD_REQUEST)
@@ -349,13 +362,13 @@ def getRoomData(request, *args, **kwargs):
    for element in RoomSerializer_instance.data:
       if element["construction_name"] == "farm":
          #!v get all node data that is in this room
-         node_data_in_room_element = Registration.objects.filter(room_id=element["id"])
-         #!v create one more field "node_array" int this element
+         node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"])
+         #!v create one more field "node_array" in this element
          element["node_array"] = RegistrationSerializer(node_data_in_room_element, many=True).data #!< HAVE TO ADD "many=True"
          response_dict["farm"].append(element)
       elif element["construction_name"] == "building":
          #!v get all node data that is in this room
-         node_data_in_room_element = Registration.objects.filter(room_id=element["id"])
+         node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"])
          #!v create one more field "node_array" int this element
          element["node_array"] = RegistrationSerializer(node_data_in_room_element, many=True).data #!< HAVE TO ADD "many=True"
          response_dict["building"].append(element)
@@ -365,7 +378,19 @@ def getRoomData(request, *args, **kwargs):
 # @brief This view is for get data for InformationTag component in 
 #        frontend.
 # @return Example:
-#
+               # {
+               #    "time": 1076,
+               #    "co2": [
+               #       12344
+               #    ],
+               #    "temp": [
+               #       34
+               #    ],
+               #    "hum": [
+               #       93
+               #    ]
+               # }
+#           
 #######################################################################
 # @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 # @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
@@ -374,6 +399,53 @@ def getRoomInformationTag(request, *args, **kwargs):
    room_id = request.GET["room_id"]
    print(room_id)
    if RawSensorMonitor.objects.count() != 0:
+      # 1.Get all node_id s that belong to this room
+      if Registration.objects.filter(room_id=room_id, function="sensor").count() == 0:
+         parameter_key_list = {"co2", "temp", "hum", "light", "dust", "sound", "red", "green", "blue", "tvoc", "motion"}
+         average_data_to_return = {}
+         for i in parameter_key_list:
+            average_data_to_return[i] = 0
+            average_data_to_return["time"] = 0
+            return Response(average_data_to_return, status=status.HTTP_200_OK)
+      all_node_id_of_this_room_id = Registration.objects.filter(room_id=room_id, function="sensor")
+      RegistrationSerializer_instance = RegistrationSerializer(all_node_id_of_this_room_id, many=True)   #!< Have to add many=True
+      all_node_id_of_this_room_id_list = [ i["node_id"] for i in RegistrationSerializer_instance.data]
+      print(all_node_id_of_this_room_id_list)
+      # 2.get the latest data for each node_id
+      latest_data_of_each_node_id_in_this_room = []
+      for each_node_id in all_node_id_of_this_room_id_list:
+         if RawSensorMonitor.objects.filter(room_id=room_id, node_id=each_node_id).exists():   #!< if records of this node_id exist ...
+            data_of_this_node_id = RawSensorMonitor.objects.filter(room_id=room_id, node_id=each_node_id).order_by('-time')[0]  #!< get the latest record of this node_id
+            latest_data_of_each_node_id_in_this_room.append(RawSensorMonitorSerializer(data_of_this_node_id).data)
+         else:
+            continue
+      # 3. get the average data of them
+      parameter_key_list = {"co2", "temp", "hum", "light", "dust", "sound", "red", "green", "blue", "tvoc", "motion"}
+      average_data_to_return = {}
+      # for element in latest_data_of_each_node_id_in_this_room:
+      df = pd.DataFrame(latest_data_of_each_node_id_in_this_room)
+      df.sort_values(by="time", ascending=False, inplace=True, )
+      average_data_to_return["time"] = df.iloc[0]["time"]   #!< get the time of the latest record
+      average_df = df.mean(numeric_only = True,)   #!< calculate average value of all column existing in dataframe
+      for para in parameter_key_list:
+         if para in average_df:
+            if para not in average_data_to_return:
+               average_data_to_return[para] = []
+               average_data_to_return[para].append(int(average_df[para]))
+            else:
+               average_data_to_return[para].append(int(average_df[para]))
+         else:
+            continue
+      # 5. Get nodes information
+      sensor_node_information_in_this_room_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="sensor"), many=True).data #!< have to add many=True
+      actuator_node_information_in_this_room_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="actuator"), many=True).data  #!< have to add many=True
+      average_data_to_return["node_info"] = {"sensor": sensor_node_information_in_this_room_list,
+                                             "actuator": actuator_node_information_in_this_room_list}
+      # 6. Get room size 
+      room_size_data = RoomSerializer(Room.objects.filter(room_id=room_id), many=True).data #!< have to include many=True
+      average_data_to_return["room_size"]
+
+      return Response(average_data_to_return, status=status.HTTP_200_OK)
       data = RawSensorMonitor.objects.order_by('-time')[0]     #!< get the latest record in model according to timeline
       RawSensorMonitorSerializer_instance = RawSensorMonitorSerializer(data)
       return Response(RawSensorMonitorSerializer_instance.data, status=status.HTTP_200_OK)

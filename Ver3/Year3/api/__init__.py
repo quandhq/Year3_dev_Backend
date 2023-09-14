@@ -1,4 +1,3 @@
-from .djangoClient import Mqtt
 import sys
 
 if 'runserver' in sys.argv:
