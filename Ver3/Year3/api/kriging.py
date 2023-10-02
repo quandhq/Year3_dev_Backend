@@ -12,19 +12,16 @@ import seaborn as sns
  * @brief room has size of x (18) and y (8)
  */
 """
-default_X = np.array([0,0,6.25,8.75])           #default axis x of id 3,4,5,6
-default_Y = np.array([0.25,2.25,1.25,0.25])     #default axis y of id 3,4,5,6
-#--------------------------------value of all known-points------------------------------
-Var = np.array([34.43, 22.03, 28.76, 24.78])    #this is default-type value of all known-points
+
 #---------------------------------------------------------------------------------------
 
 one_point_X = 3.25
 one_point_Y = 1.25
 
 
-class Kriging:
+class Kriging(object):
    room_x = 18
-   room_y = 9
+   room_y = 18
    #--------------------------------resolution---------------------------------------
    resolution = 100 #hình như cái này mình không dùng
    resolutionX = 100
@@ -47,12 +44,14 @@ class Kriging:
    sill = 7.5
    rang = 10
 
-   def __init__(self, resolutionX, resolutionY, arrayVar, arrayX, arrayY):      
+   def __init__(self, resolutionX, resolutionY, arrayVar, arrayX, arrayY, roomX, roomY):      
       self.resolutionX = resolutionX
       self.resolutionY = resolutionY
       self.default_X = np.array(arrayX)
       self.default_Y = np.array(arrayY)
       self.Var = np.array(arrayVar)
+      self.room_x = roomX
+      self.room_y = roomY
       print("SELF>VARRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR")
       print(self.Var)
    def semivariance(self,h):
@@ -121,11 +120,11 @@ class Kriging:
       ResolutionY = self.resolutionY
       # X_mesh = np.linspace(np.amin(X)-1, np.amax(X) + 1, Resolution)
       # Y_mesh = np.linspace(np.amin(Y)-1, np.amax(Y) + 1, Resolution)
-      X_mesh = np.linspace(0, self.room_x, ResolutionX)   #!< bình thường là X_mesh = np.linspace(0, 9, ResolutionX)
-      Y_mesh = np.linspace(0, self.room_y, ResolutionY)    #!< bình thường là X_mesh = np.linspace(0, 4, ResolutionX)
+      X_mesh = np.linspace(0, self.room_x/2, ResolutionX)   #!< bình thường là X_mesh = np.linspace(0, 9, ResolutionX)
+      Y_mesh = np.linspace(0, self.room_y/2, ResolutionY)    #!< bình thường là X_mesh = np.linspace(0, 4, ResolutionX)
       XX, YY = np.meshgrid(X_mesh, Y_mesh)   
-      print(XX,YY)
-      print("}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}")
+    #   print(XX,YY)
+    #   print("}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}")
       EX = []
       EY = []
       EZ = []
@@ -145,8 +144,8 @@ class Kriging:
          estimated = self.OK(rows['X'], rows['Y'])
          EZ.append(round(estimated,2))
       Grid = pd.DataFrame(data={'X':EX, 'Y':EY, 'Z':EZ})
-      print("EXXXXXXXXXXXXXXXXXXXXXXX")
-      print(EX)
+    #   print("EXXXXXXXXXXXXXXXXXXXXXXX")
+      # print(EX)
       
       return [EX, EY, EZ]
       # return Grid
@@ -159,12 +158,17 @@ class Kriging:
 
 """
 /*
- * @brief This code block is for drawing the plot
+ * @brief This code block is for drawing the plot, kriging using example
  */
  """
+# default_X = np.array([5, 4, 11, 3, 14, 15])           #default axis x of id 3,4,5,6
+# default_Y = np.array([5, 8, 11, 15, 14, 5])     #default axis y of id 3,4,5,6
+# #--------------------------------value of all known-points------------------------------
+# Var = np.array([32.36, 0, 0, 31.68, 30.8, 31.78])    #this is default-type value of all known-points
+
 # resolutionX = 100
-# resolutionY = 60
-# k = Kriging(resolutionX, resolutionY, Var, default_X, default_Y)
+# resolutionY = 100
+# k = Kriging(resolutionX, resolutionY, Var, default_X, default_Y, 18, 18)
 
 # #------------------------------------plot points-------------------------------------------
 # # cax = plt.scatter(default_X, default_Y, c=Var)
@@ -228,7 +232,7 @@ class Kriging:
 # """
 # plt.title('PM2.5 distribution at 13pm on 08/10', fontweight ="bold")
 # plt.show()
-# """END BLOCK"""
+"""END BLOCK"""
 
 """END BLOCK"""
 

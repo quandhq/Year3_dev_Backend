@@ -7,7 +7,7 @@ urlpatterns = [
     # path('get/<int:year>/<int:month>/<slug:slug>/', views.SensorMixinView.as_view()),
     path('v1.1/monitor/data', views.getSensorSecondlyData),
     path('v1.1/monitor/data/history', views.historyChart),
-    path('get/kriging', views.kriging),
+    path('room/kriging', views.kriging),
     # path('set/<int:param>', views.send_set_point), #view to send setpoint to sensor
     path('v1.1/control/fans',views.send_setpoint), #view to send setpoint to gateway
     path('get/test_authentication', views.getAuthenticationSensorSecondlyData),
