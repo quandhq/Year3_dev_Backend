@@ -5,6 +5,7 @@
 import mqtt 
 import time
 import json
+import random
 broker = "27.71.227.1"
 topic = "farm/monitor/sensor"
 data = {
@@ -39,18 +40,8 @@ data = {
         ]
     }
 }
-data1 = { 
-  "operator": "data_response", 
-  "status": 1, 
-  "info": { 
-    "room_id": 1, 
-    "node_id": 1, 
-    "co2": 400, 
-    "temp": 60.52, 
-    "hum": 29.32, 
-    "time": 1655396252 
-  } 
-} 
+import datetime
+
 
 
 client = mqtt.Client(topic)
@@ -61,6 +52,20 @@ while True:
     if temp != None:
         print("receive message!")
         print(json.loads(temp))
+    random.seed(int((datetime.datetime.now()).timestamp()))
+    data1 = { 
+    "operator": "data_response", 
+    "status": 1, 
+    "info": { 
+        "room_id": 1, 
+        "node_id": 1, 
+        "co2": 400, 
+        "dust": random.randint(0,50) + round(random.random(),2),
+        "temp": 60.52, 
+        "hum": 29.32,
+        "time": int((datetime.datetime.now()).timestamp()) + (7*60*60), 
+    } 
+    } 
     client.publish(topic, json.dumps(data1))
     print("Done sending message")
-    time.sleep(3)
+    time.sleep(30)

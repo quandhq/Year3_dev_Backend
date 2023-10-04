@@ -17,6 +17,7 @@ urlpatterns = [
     path('token/verify', TokenVerifyView.as_view()),
     path('room', views.getRoomData),    #!< api for getting room data for langingPage component on frontend
     path('room/information_tag', views.getRoomInformationTag),  #!< api for InformationTag component
+    path('room/AQIdustpm2_5', views.AQIdustpm2_5),  #!< api for InformationTag component
     #_________testing url_____________
     path('get/index', views.index, name="_get_index"),
     path('get/test_redirect', views.test_redirect),

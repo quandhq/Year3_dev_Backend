@@ -94,19 +94,20 @@ def getSensorSecondlyData(request , *args, **kwargs):
     #Notice that: the timestamp in database is the utc timestamp + 7hour
     #Our local time stamp is faster than than the utc timestamp 7 hour
     ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
+    print(ctime)
     filter_time = 0 
     if filter == 1:
         filter_time = ctime - ctime%(24*60*60)
     elif filter == 2:
-        filter_time = ctime - ctime%(24*60*60*7)
+        filter_time = ctime - ctime%(24*60*60) - 24*60*60*7
     elif filter == 3:
-        filter_time = ctime - ctime%(24*60*60*31)
+        filter_time = ctime - ctime%(24*60*60) - 24*60*60*31
     elif filter == 4:
-        filter_time = ctime - ctime%(24*60*60*31*6)
+        filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*6
     elif filter == 5:
-        filter_time = ctime - ctime%(24*60*60*12)
+        filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
     else:
-        filter_time = ctime - ctime%(24*60*60*12)
+        filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
          
     parameter_key_list = ["co2", "temp", "hum", "light", 
                             "dust", "sound", "red", "green", 
@@ -117,11 +118,12 @@ def getSensorSecondlyData(request , *args, **kwargs):
     #Get all 100 record for each node_id and put all in an list
     total_list = []
     if node_id == 0:
+        print(filter_time)
         for each_node_id in sensor_node_id_list:
             if models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=each_node_id).count() > 0:
                 data = RawSensorMonitorSerializer(models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=each_node_id).order_by("-time"), many=True).data #!< have to add many=True
                 data.reverse()
-                total_list.append(data) 
+                total_list.append(data)
     else:
         if models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=node_id).count() > 0:
             data = RawSensorMonitorSerializer(models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=node_id).order_by("-time"), many=True).data #!< have to add many=True
@@ -137,9 +139,14 @@ def getSensorSecondlyData(request , *args, **kwargs):
         return Response(return_data, status=status.HTTP_204_NO_CONTENT) 
     #!< Get an average data of each group of records id (ignore the 0 value) and the time of one record (latest) and add them to return data 
 
-    
+    for i in total_list:
+        print(len(i))
+    print("////....")
     min_len_of_array_in_total_list = min([len(i) for i in total_list])
+    print(min_len_of_array_in_total_list)
     total_list = [i[-min_len_of_array_in_total_list:] for i in total_list]
+    for i in total_list:
+        print(len(i))
 
     
     return_data = {}
@@ -404,48 +411,7 @@ def historyChart(request, *args, **kwargs):
 		return Response({"Response": "Option is not provided"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-#_____________________view for websocket________________________
-"""
-Here we will create a login page for the frontend part and from 
-there we will make a post request with username and password 
-then the backend view will validate whether the user is there or not, 
-if the user is there then the token will be sent from the backend 
-in the response and we will create a socket connection from there. 
-For this, we will need a views.py which will have will handle login 
-and send the token. 
 
-The uses of different modules are described below:
-
-1. Response: This is the response object which is sent from the API view
-2. api_view: It converts the normal Django view to the API view.
-3. authenticate: This will return the user, based on the username and password.
-"""
-
-from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
- 
- 
-@api_view(["POST"])
-def loginWebsocket(request, *args, **kwargs):
-	data = json.loads(request.body)
-	username = data["username"]
-	print(username)
-	password = data["password"]
-	print(password)
-	try:
-			user = authenticate(username=username, password=password)
-	except:
-			user = None
-	if not user:
-		print("No such User")
-		return Response({
-			"user_not_found": "There is no user with this username and password !"
-				}, status=status.HTTP_400_BAD_REQUEST)
-	token = Token.objects.get(user=user)
-	return Response({
-						"token": token.key,
-					}, status=status.HTTP_200_OK)
-#_____________________________END view for websocket__________________________________
 
 
 #######################################################################
@@ -598,3 +564,142 @@ def getRoomInformationTag(request, *args, **kwargs):
         # return Response(RawSensorMonitorSerializer_instance.data, status=status.HTTP_200_OK)
     else:
         return Response({"message": "No content!"}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+##
+# @brief: This view calculate the hourly and daily AQIdust pm2.5 base on airnowtech 
+#       Goto "https://forum.airnowtech.org/t/the-aqi-equation/169" for more informations
+# @params: 
+#       urls: "room/AQIdustpm2_5?room_id={room_id}"
+# @return:
+#       data in json format: 
+#       {
+#           "hourly": ...,
+#           "daily": ...,
+#       }
+@api_view(["GET"])
+def AQIdustpm2_5(request, *args, **kwargs):
+    room_id = int(request.GET.get("room_id"))
+    pm2_5_table = [
+        {"conclo": 0.0, "conchi": 12.0, "aqilo": 0, "aqihi": 50,},
+        {"conclo": 12.1, "conchi": 35.4, "aqilo": 51, "aqihi": 100,},
+        {"conclo": 35.5, "conchi": 55.4, "aqilo": 101, "aqihi": 150,},
+        {"conclo": 55.5, "conchi": 150.4, "aqilo": 151, "aqihi": 200,},
+        {"conclo": 150.5, "conchi": 250.4, "aqilo": 201, "aqihi": 300,},
+        {"conclo": 250.5, "conclo": 500.4, "aqilo": 301, "aqihi": 500,},
+    ]
+    hourly = 0
+    daily = 0
+    ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
+    print(ctime)
+    #calculate hourly data
+    filter_time = ctime - 12*60*60
+    node_sensor_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id),many=True)
+    hourly_dust_data = RawSensorMonitorSerializer(RawSensorMonitor.objects.filter(room_id=room_id, time__gt=filter_time, dust__gt=0), many=True).data #!< have to add many=True
+    if len(hourly_dust_data) != 0:
+        df = pd.DataFrame(hourly_dust_data)
+        df = df[["time", "id", "dust"]]
+        df['datetime'] = pd.to_datetime(df['time'], unit='s')
+        df["hour"] = df["datetime"].dt.hour
+        df = df.groupby(['hour'], as_index=False).mean()
+        df.sort_values(by='hour', ascending=False, inplace=True)
+        print(df)
+        power_index = 0
+        pre_row = None
+        l = []
+        first_record_flag = True
+        for index, row in df.iterrows():
+            if first_record_flag:
+                pre_row = row["hour"]
+                l.append({"value": row["dust"], "pow": power_index})
+                first_record_flag = False
+            else:
+                dif = pre_row - row["hour"]
+                pre_row = row["hour"]
+                power_index = int(power_index + dif)
+                l.append({"value": row["dust"], "pow": power_index})
+
+        print(l)
+        temp_list = [i["value"] for i in l]
+        range = round(max(temp_list) - min(temp_list),1)
+        scaled_rate_of_change = range/max(temp_list)
+        weight_factor = 1 - scaled_rate_of_change
+        weight_factor = 0.5 if weight_factor < 0.5 else round(weight_factor, 1)
+        sum = 0
+        sum_of_power = 0
+        
+        for i in l:
+            sum = sum + i["value"]*pow(weight_factor, i["pow"])
+            sum_of_power = sum_of_power + pow(weight_factor, i["pow"])
+            
+        hourly = round(sum/sum_of_power, 1)
+        conclo = None
+        conchi = None
+        aqilo = None
+        aqihi = None
+        for i in pm2_5_table:
+            if round(hourly) > 500:
+                hourly = 500
+                break
+            if round(hourly) <= i["conchi"] and round(hourly) >= i["conclo"]:        
+                conclo = i["conclo"]
+                conchi = i["conchi"]
+                aqilo = i["aqilo"]
+                aqihi = i["aqihi"]
+                hourly = round((aqihi - aqilo)*(hourly-conclo)/(conchi-conclo) + aqilo)
+                break
+        print(hourly)
+            
+    return Response({"hourly": hourly, "daily": 0}, status=200)
+
+
+
+
+
+
+
+
+
+#_____________________view for websocket________________________
+"""
+Here we will create a login page for the frontend part and from 
+there we will make a post request with username and password 
+then the backend view will validate whether the user is there or not, 
+if the user is there then the token will be sent from the backend 
+in the response and we will create a socket connection from there. 
+For this, we will need a views.py which will have will handle login 
+and send the token. 
+
+The uses of different modules are described below:
+
+1. Response: This is the response object which is sent from the API view
+2. api_view: It converts the normal Django view to the API view.
+3. authenticate: This will return the user, based on the username and password.
+"""
+
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
+ 
+ 
+@api_view(["POST"])
+def loginWebsocket(request, *args, **kwargs):
+	data = json.loads(request.body)
+	username = data["username"]
+	print(username)
+	password = data["password"]
+	print(password)
+	try:
+			user = authenticate(username=username, password=password)
+	except:
+			user = None
+	if not user:
+		print("No such User")
+		return Response({
+			"user_not_found": "There is no user with this username and password !"
+				}, status=status.HTTP_400_BAD_REQUEST)
+	token = Token.objects.get(user=user)
+	return Response({
+						"token": token.key,
+					}, status=status.HTTP_200_OK)
+#_____________________________END view for websocket__________________________________

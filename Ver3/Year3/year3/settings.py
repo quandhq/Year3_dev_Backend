@@ -80,8 +80,8 @@ REST_FRAMEWORK = {
 *brief: this is to declare the time expiring of the access-token and refreshing token of simplejwt application
 """
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(hours=1),
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(hours=10),
+    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(hours=20),
 }
 
 MIDDLEWARE = [
