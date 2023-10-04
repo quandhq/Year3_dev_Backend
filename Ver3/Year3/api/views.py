@@ -300,7 +300,7 @@ def kriging(request, *args, **kwargs):
     # id3 = models.Sensor.objects.filter(id=3).order_by('-time')[0]
     # id4 = models.Sensor.objects.filter(id=4).order_by('-time')[0]
     # new_var = [id1.temperature, id2.temperature, id3.temperature, id4.temperature]
-    k = Kriging(10,10, default_value, default_X, default_Y, room_size["x_length"], room_size["y_length"])
+    k = Kriging(10, 10, default_value, default_X, default_Y, room_size["x_length"], room_size["y_length"])
     test = k.interpolation()
     response = {'data': test[2], 'resolutionX': k.resolutionX, 'resolutionY': k.resolutionY}
 
