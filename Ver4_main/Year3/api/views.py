@@ -114,8 +114,18 @@ def getSensorSecondlyData(request , *args, **kwargs):
         print(len(i))
     print("////....")
     min_len_of_array_in_total_list = min([len(i) for i in total_list])
+    max_len_of_array_in_total_list = max([len(i) for i in total_list])
     print(min_len_of_array_in_total_list)
-    total_list = [i[-min_len_of_array_in_total_list:] for i in total_list]
+    print(max_len_of_array_in_total_list)
+    # total_list = [i[-min_len_of_array_in_total_list:] for i in total_list]
+    for i in total_list:
+        print(len(i))
+
+    for i in total_list:
+        if len(i) < max_len_of_array_in_total_list:
+            for j in range(0, max_len_of_array_in_total_list - len(i)):
+                i.insert(0, {i: 0 for i in parameter_key_list})
+
     for i in total_list:
         print(len(i))
 
@@ -158,9 +168,9 @@ def getSensorSecondlyData(request , *args, **kwargs):
 #___________________________________________________________________end__________________________________________________________________
 
 			
-from .djangoClientSendSpeed import insert_to_table_ControlSetpoint
-from .djangoClientSendSpeed import send_setpoint_to_mqtt
-from .djangoClientSendSpeed import client as setpoint_client            
+from .djangoClient import insert_to_table_ControlSetpoint
+from .djangoClient import send_setpoint_to_mqtt
+from .djangoClient import client as setpoint_client            
 
 ###############################################################
 # @brief: View for get set point value from Frontend, process
@@ -191,6 +201,31 @@ def send_setpoint(request, *arg, **kwargs):
    send_setpoint_to_mqtt(setpoint_client, monitor_data)
    return Response({"Result": "Successful send setpoint"}, status=status.HTTP_200_OK)      
 
+
+###############################################################
+# @brief: View for set timer for actuator from Frontend, send it to gateway,
+#           ,save the record to database.
+# @paras:
+#       url: "http://${host}/api/room/set_timer?room_id=${room_id}"
+#       data:   
+#           {
+#               'method':'POST',
+#                'headers': {
+#                    'Content-Type':'application/json',
+#                    },
+#                "body": {
+#                           "timer": [time],
+#                        },
+#           }
+# @return: 
+#       {"Result": "Successful set timer"}
+###############################################################
+@api_view(["POST"])
+def setTimerActuator(request, *args, **kwargs):
+    timer = json.loads(request.body)
+    print(timer)
+    #send data to gateway and wait for return
+    #save to database 
 
 
 ###############################################################

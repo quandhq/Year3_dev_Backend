@@ -4,6 +4,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 urlpatterns = [
+    path('api/room/set_timer'), views.setTimerActuator,
     path('v1.1/monitor/data', views.getSensorSecondlyData),
     path('v1.1/monitor/data/history', views.historyChart),
     path('room/kriging', views.kriging),

@@ -7,20 +7,62 @@ import psycopg2
 broker = "27.71.227.1"
 mqtt_topic = "farm/control"
 
-client = Client(mqtt_topic)
+backend_topic_dictionary = {"get_sensor_data": "farm/monitor/sensor",
+                        "get_actuator_data": "farm/monitor/actuator",
+                        "get_setpoint": "farm/control",
+                        "room_sync_gateway_backend": "farm/sync_room",
+                        "set_timer": "farm/set_timer",}
+
+client = Client(mqtt_topic,[backend_topic_dictionary["set_timer"]])
 mqtt_broker = broker     
 mqtt_port = 1883
 client.connect(mqtt_broker, int(mqtt_port), 60)
 client.loop_start()
 print("Done setting up client...")
 
+
+#this function is use by the view sending monitoring data to gateway
+# param: data -> dict { 
+#   "operator": " set_timer", 
+#   "info": { 
+#     "room_id": 0, 
+#     "time": 1655396252, 
+#   } 
+# } 
+
+def send_timer_to_gateway():
+    #1 publish
+    #2 wait for 2s:
+    #   time = datetime 
+    #   result = 0
+    #while(1)
+    # if new datetime() - time > 2: break
+    # if temp != None:
+    #             print(f"RRRRRRRRRRRRRRRReceived `{temp}`")
+    #             msg = json.loads(temp)
+    #             if msg["operator"] == "...":
+    #                   if data = 1:
+    #                           result = 1, break
+    #   return result
+    #                   
+    #           
+    pass        
+
+
+
+#this function is use by the view sending monitoring data to gateway
+# param: data -> dict { 
+#                           "option": ...,
+#                           "key": ..., 
+#                     }
+#                     key can be "co2" or "temp" or "speed"
 def send_setpoint_to_mqtt(client: Client, data: dict):
     mqtt_topic = f"farm/control"
     date = datetime.datetime.utcnow()
     print(date)
     utc_time = calendar.timegm(date.utctimetuple())
     print(utc_time)
-    print(f"data in send_speed_setpoint is {data}" )
+    print(f"data in send_speed_setpoint is {data}")
     key = ""
     option = ""
     if "temp" in data:
@@ -56,12 +98,6 @@ def send_setpoint_to_mqtt(client: Client, data: dict):
         raise Exception("Can't publish data to mqtt..........................!") 
 
 
-#this function is use by the view sending monitoring data to gateway
-# param: data -> dict { 
-#                           "option": ...,
-#                           "key": ..., 
-#                     }
-#                     key can be "co2" or "temp" or "speed"
 def insert_to_table_ControlSetpoint(data,
                      __database='smart_construction', 
                      __user='quan', 

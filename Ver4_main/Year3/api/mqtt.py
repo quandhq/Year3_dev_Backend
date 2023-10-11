@@ -3,10 +3,11 @@ import paho.mqtt.client as mqtt
 
 # Inheritance class
 class Client(mqtt.Client):
-    def __init__(self, _topic):
+    def __init__(self, _topic, _topic_array=[]):
         super().__init__()
         self.__check = False
         self.__topic = _topic
+        self._topic_arry = _topic_array
         # self.__logger = Log(__name__)
 
     def on_connect(self, client, userdata, flags, rc):
@@ -15,6 +16,10 @@ class Client(mqtt.Client):
         if rc == 0:
             print("Successfully connect to mqtt")
             self.subscribe(self.__topic)
+            print(f"Successfully connect to {self.__topic}")
+            for i in self._topic_arry:
+                self.subscribe(i)
+                print(f"Successfully connect to {i}")
         else:
             print("Unsuccessfully connect to mqtt")
     

@@ -135,4 +135,7 @@ class ControlSetpoint(models.Model):
     time = models.BigIntegerField(db_column="time")
     def __str__(self):
         return self.time
+    
+class SetTimerHistory(models.Model):
+    pass
 
