@@ -1,8 +1,6 @@
-from dataclasses import field
-from pyexpat import model
 from rest_framework import serializers
 from api.models import Room, Registration, RawSensorMonitor, SensorMonitor
-from api.models import RawActuatorMonitor, ActuatorMonitor, ControlSetpoint
+from api.models import RawActuatorMonitor, ActuatorMonitor, ControlSetpoint, SetTimerHistory
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -24,3 +22,8 @@ class RawActuatorMonitorSerializer(serializers.ModelSerializer):
    class Meta:
       model = RawActuatorMonitor
       fields = "__all__"
+
+class SetTimerHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+       model = SetTimerHistory
+       fields = "__all__"

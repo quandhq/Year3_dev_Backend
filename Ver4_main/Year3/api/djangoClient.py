@@ -30,7 +30,45 @@ print("Done setting up client...")
 #   } 
 # } 
 
-def send_timer_to_gateway():
+def send_timer_to_gateway(client: Client, data: dict):
+    topic = backend_topic_dictionary["set_timer"]
+    date = int((datetime.datetime.now()).timestamp()) + 7*60*60         #time to save to database
+    print(date)
+    print(f"data in send_timer is {data}")
+    new_data = { 
+                "operator": "set_timer", 
+                "info": 
+                { 
+                    "room_id": data["room_id"],         
+                    "time": data["timer"], 
+                } 
+            }
+    
+    msg = json.dumps(new_data)
+    result = client.publish(topic, msg)
+    status = result[0]
+    if status == 0:
+        print("Successfully send timer turn on air-conditioning message!!!")
+    # print(f"Succesfully send '{msg}' to topic '{topic}'")
+        pass
+    else:
+        raise Exception("Can't publish data to mqtt..........................!")
+
+    result = 0
+    curent_time = int((datetime.datetime.now()).timestamp())
+    while(1):
+        if int((datetime.datetime.now()).timestamp()) - curent_time > 2: 
+            break
+        temp = client.msg_arrive()
+        if temp != None:
+                    print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
+                    msg = json.loads(temp)
+                    if msg["operator"] == "set_timer_ack":
+                        if msg["info"]["status"] == 1:
+                            result = 1
+                            break
+    return result
+    
     #1 publish
     #2 wait for 2s:
     #   time = datetime 
@@ -46,7 +84,6 @@ def send_timer_to_gateway():
     #   return result
     #                   
     #           
-    pass        
 
 
 

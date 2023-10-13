@@ -50,7 +50,7 @@ def insert_to_DB(topic,
         record = (data["info"]["room_id"], data["info"]["node_id"])
         for i in parameter_key_list:
             if i not in data["info"]:
-                record = record + (0,)
+                record = record + (-1,)
             else:
                 record = record + (data["info"][i], )   #!< create a tupble of one element "data["info"][i]" and concatenate it to record
         print(record)    

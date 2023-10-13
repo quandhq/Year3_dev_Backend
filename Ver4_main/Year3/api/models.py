@@ -15,6 +15,7 @@ class Room(models.Model):
     construction_name = models.TextField(db_column="construction_name")
     x_length = models.SmallIntegerField(db_column="x_length")
     y_length = models.SmallIntegerField(db_column="y_length")
+    information = models.TextField(null=False, db_column="information")
 
 ##
 # @brief This table is for storing node data, including how many node are being emplemented,
@@ -137,5 +138,17 @@ class ControlSetpoint(models.Model):
         return self.time
     
 class SetTimerHistory(models.Model):
-    pass
+    id = models.BigAutoField(primary_key=True, db_column="id")
+    room_id = models.ForeignKey(Room,
+                                verbose_name=("Refering to room that this is trying to set timer value for"),
+                                on_delete=models.CASCADE,
+                                null=False,     
+                                db_column="room_id",                        
+                                )
+    time = models.BigIntegerField(db_column="time")
+    timer = models.IntegerField(null=False, db_column="timer",)
+    status = models.IntegerField(null=False, db_column="status",) #1 or 0
+
+
+
 

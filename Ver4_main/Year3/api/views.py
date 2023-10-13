@@ -22,7 +22,7 @@ import datetime
 import calendar
 from api.models import Room, Registration, RawSensorMonitor
 from api.serializers import RoomSerializer, RegistrationSerializer
-from api.serializers import RawSensorMonitorSerializer ,RawActuatorMonitorSerializer 
+from api.serializers import RawSensorMonitorSerializer ,RawActuatorMonitorSerializer, SetTimerHistorySerializer
 import pandas as pd
 import math
 import time
@@ -124,7 +124,7 @@ def getSensorSecondlyData(request , *args, **kwargs):
     for i in total_list:
         if len(i) < max_len_of_array_in_total_list:
             for j in range(0, max_len_of_array_in_total_list - len(i)):
-                i.insert(0, {i: 0 for i in parameter_key_list})
+                i.insert(0, {i: -1 for i in parameter_key_list})
 
     for i in total_list:
         print(len(i))
@@ -142,10 +142,10 @@ def getSensorSecondlyData(request , *args, **kwargs):
     for i in range(len(total_list[0])):
         for each_element_in_total_list in total_list:
             for j in  parameter_key_list:
-                if j != "time" and each_element_in_total_list[i][j] != 0:
+                if j != "time" and each_element_in_total_list[i][j] >= 0:
                     buffer[j]["value"] = buffer[j]["value"] +  each_element_in_total_list[i][j]
                     buffer[j]["number"] = buffer[j]["number"] +  1
-                elif j == "time" and each_element_in_total_list[i][j] != 0:
+                elif j == "time" and each_element_in_total_list[i][j] >= 0:
                     buffer[j].append(each_element_in_total_list[i][j])
                 else:
                     continue
@@ -220,12 +220,30 @@ def send_setpoint(request, *arg, **kwargs):
 # @return: 
 #       {"Result": "Successful set timer"}
 ###############################################################
+from .djangoClient import send_timer_to_gateway, client
 @api_view(["POST"])
 def setTimerActuator(request, *args, **kwargs):
+    room_id = request.GET.get("room_id")
     timer = json.loads(request.body)
     print(timer)
+    result = send_timer_to_gateway(client, {"timer": timer["time"], "room_id": room_id})
     #send data to gateway and wait for return
+    new_data = {"room_id": room_id, 
+                "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
+                "timer": timer["time"],
+                "status": result,
+                }
+    new_data_serializer = SetTimerHistorySerializer(data=new_data)
+    if new_data_serializer.is_valid():
+        new_data_serializer.save()
+        if result == 1:
+            return Response({"Response": "Successful"}, status=status.HTTP_200_OK)
+        if result == 0:
+            return Response({"Response": "Unsuccessfully set timer"}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({"Response": "Can not save record to database"}, status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION)
     #save to database 
+    
 
 
 ###############################################################
@@ -438,7 +456,7 @@ def getRoomInformationTag(request, *args, **kwargs):
             parameter_key_list = {"co2", "temp", "hum", "light", "dust", "sound", "red", "green", "blue", "tvoc", "motion"}
             average_data_to_return = {}
             for i in parameter_key_list:
-                average_data_to_return[i] = 0
+                average_data_to_return[i] = -1
                 average_data_to_return["time"] = 0
             return Response(average_data_to_return, status=status.HTTP_200_OK)
         all_node_id_of_this_room_id = Registration.objects.filter(room_id=room_id, function="sensor")
@@ -460,15 +478,15 @@ def getRoomInformationTag(request, *args, **kwargs):
         df = pd.DataFrame(latest_data_of_each_node_id_in_this_room)
         df.sort_values(by="time", ascending=False, inplace=True, )
         average_data_to_return["time"] = df.iloc[0]["time"]   #!< get the time of the latest record
-        df = df.replace(0, np.nan)
+        df = df.replace(-1, np.nan)
         average_df = df.mean(numeric_only = True,)   #!< calculate average value of all column existing in dataframe
         for para in parameter_key_list:
             if para in average_df:
                 if para not in average_data_to_return:
                     average_data_to_return[para] = []
-                    average_data_to_return[para].append(int(average_df[para]) if str(average_df[para]) != "nan" else 0)
+                    average_data_to_return[para].append(int(average_df[para]) if str(average_df[para]) != "nan" else -1)
                 else:
-                    average_data_to_return[para].append(int(average_df[para]) if str(average_df[para]) != "nan" else 0)
+                    average_data_to_return[para].append(int(average_df[para]) if str(average_df[para]) != "nan" else -1)
             else:
                 continue
         # 5. Get nodes information
