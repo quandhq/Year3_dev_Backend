@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 import os
 import datetime
+import dj_database_url
 
 DEBUG_MODE = True
 
@@ -34,7 +35,7 @@ SECRET_KEY = 'django-insecure-lvmv%!as*-*mh#s69am))4x#&f0vkqy(-i0wd4*(t=qnh!oj%9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True if (DEBUG_MODE == True) else False
 
-ALLOWED_HOSTS = ['27.71.227.1', 'localhost']
+ALLOWED_HOSTS = ['27.71.227.1', 'localhost', '.vercel.app']
 #'10.14.50.95', '127.0.0.1', '*'
 
 # Application definition
@@ -64,15 +65,15 @@ INSTALLED_APPS = [
 *brief: this is to declare that "globally all of our API will be wrapped in  what kind of authenication
         and what kind of permission"
 """
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        # 'rest_framework_simplejwt.authentication.JWTAuthentication',    #simplejwt third party
-        # 'rest_framework.authentication.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        # 'rest_framework.permissions.IsAuthenticated',
-    ]
-} 
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',    #simplejwt third party
+#         # 'rest_framework.authentication.TokenAuthentication',
+#     ],
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.IsAuthenticated',
+#     ]
+# } 
 
 """
 *brief: this is to declare the time expiring of the access-token and refreshing token of simplejwt application
@@ -149,13 +150,17 @@ CHANNEL_LAYERS = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'smart_construction',
-        'USER': 'quan',
-        'PASSWORD': '1',
+        'NAME': 'smartfarm',
+        'USER': 'year3',
+        'PASSWORD': 'year3',
         'HOST': 'localhost',
         'PORT': '5432',
     }
 }
+
+# DATABASES["default"] = dj_database_url.parse("postgres://smart_construction_user:mpuVa358yCcb8mkRKK5Nmpbb1md2OsLX@dpg-ckkkvhu6fcos73bjbsbg-a.singapore-postgres.render.com/smart_construction")
+
+# postgres://smart_construction_user:mpuVa358yCcb8mkRKK5Nmpbb1md2OsLX@dpg-ckkkvhu6fcos73bjbsbg-a.singapore-postgres.render.com/smart_construction
 
 
 # Password validation
@@ -201,3 +206,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 print("Set up settings ...")
+
+
+# INSERT INTO api_room (room_id, construction_name, x_length, y_length, information) VALUES (1, 'building', 18, 18, 'C1B 401');
+# INSERT INTO api_registration (node_id, x_axis, y_axis, function, room_id) VALUES (1, 1, 1, 'sensor', 1);

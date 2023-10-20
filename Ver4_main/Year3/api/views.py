@@ -595,6 +595,96 @@ def AQIdustpm2_5(request, *args, **kwargs):
 
 
 
+##
+# @brief: This view is for fetching all data of room for room table in configuration page
+#
+# @params: 
+#       urls: "api/configuration/room/all"
+# @return:
+#   if there is any data:
+#       [
+#     {
+#         "id": 1,
+#         "room_id": 1,
+#         "construction_name": "building",
+#         "x_length": 18,
+#         "y_length": 18,
+#         "information": "C1B 401"
+#     }
+#   ]
+#      if there is none:
+#       []
+@api_view(["GET"])
+@authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
+@permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
+def getConfigurationRoomAll(request, *args, **kwargs):
+    if Room.objects.count() > 0:
+        all_room_data = RoomSerializer(Room.objects.all(), many=True).data  #!< have to add many=True
+        return Response(all_room_data, status=status.HTTP_200_OK)
+    else:
+        return Response([], status=status.HTTP_200_OK) 
+
+##
+# @brief: This view is for creating new room record, deleting room record or configuring record
+#         Notice: if you use postman to test create, the data in JSON form should be exactly like this
+#            {
+#                 "room_id": "2",
+#                 "construction_name": "building",
+#                 "x_length": "12",
+#                 "y_length": "25",
+#                 "information": "TETIONSG"
+#             }
+#
+# @params: 
+#       urls: "api/configuration/room/create"
+# @return:
+#   if successful
+#       status: 200
+#       data:
+#       {"Resposne": "Successful"}
+#      if not:
+#       status: 
+#       {"Resposne": "Unsuccessful"}
+@api_view(["POST", "DELETE", "PUT"])
+@authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
+@permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
+def configurationRoom(request, *args, **kwargs):
+    if request.method == "POST":
+        new_room = json.loads(request.body)
+
+        print(f"new room data {new_room}")
+        print(">???????????????????,,,,,,,,")
+        if Room.objects.filter(room_id=new_room["room_id"]).count() > 0:
+            return Response({"Response": "This room already existed!"}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_data_serializer = RoomSerializer(data=new_room)
+        if new_data_serializer.is_valid():
+            new_data_serializer.save()
+            print("Successfully save new room to database!")
+            return Response({"Response": "Successful!"}, status=status.HTTP_200_OK)
+        else:
+            print("Failed to save new room to database!")
+            return Response({"Response": "Can not save record to database!"}, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == "DELETE":
+        id = json.loads(request.body)["id"]
+        record = Room.objects.filter(id=id)[0]
+        print(record)
+        record.delete()
+        return Response({"Response": "Successfully delete room!"}, status=status.HTTP_200_OK)
+    elif request.method == "PUT":
+        new_setting = json.loads(request.body)
+        record = Room.objects.filter(id=new_setting["id"])[0]
+        record.construction_name = new_setting["construction_name"]
+        record.x_length = new_setting["x_length"]
+        record.y_length = new_setting["y_length"]
+        record.information = new_setting["information"]
+        try:
+            record.save()
+        except:
+            return Response({"Response": "Can not update new room data!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"Response": "Successfully update new room data"}, status=status.HTTP_200_OK)
+    
+
 
 
 

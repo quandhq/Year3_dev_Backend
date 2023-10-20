@@ -136,9 +136,9 @@ def send_setpoint_to_mqtt(client: Client, data: dict):
 
 
 def insert_to_table_ControlSetpoint(data,
-                     __database='smart_construction', 
-                     __user='quan', 
-                     __password='1', 
+                     __database='smartfarm', 
+                     __user='year3', 
+                     __password='year3', 
                      __host='localhost', 
                      __port='5432') -> None:
       conn = psycopg2.connect(
