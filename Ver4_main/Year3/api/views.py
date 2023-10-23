@@ -79,6 +79,8 @@ def getSensorSecondlyData(request , *args, **kwargs):
         filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
     else:
         filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
+    
+    print(filter_time)
          
     parameter_key_list = ["co2", "temp", "hum", "light", 
                             "dust", "sound", "red", "green", 
@@ -124,7 +126,7 @@ def getSensorSecondlyData(request , *args, **kwargs):
     for i in total_list:
         if len(i) < max_len_of_array_in_total_list:
             for j in range(0, max_len_of_array_in_total_list - len(i)):
-                i.insert(0, {i: -1 for i in parameter_key_list})
+                i.insert(0, {k: -1 for k in parameter_key_list})
 
     for i in total_list:
         print(len(i))
@@ -226,11 +228,12 @@ def setTimerActuator(request, *args, **kwargs):
     room_id = request.GET.get("room_id")
     timer = json.loads(request.body)
     print(timer)
-    result = send_timer_to_gateway(client, {"timer": timer["time"], "room_id": room_id})
+    result = send_timer_to_gateway(client, {"timer": timer["time"],"temperature": timer["temperature"] ,"room_id": room_id})
     #send data to gateway and wait for return
     new_data = {"room_id": room_id, 
                 "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
                 "timer": timer["time"],
+                "temperature": timer["temperature"],
                 "status": result,
                 }
     new_data_serializer = SetTimerHistorySerializer(data=new_data)
@@ -636,15 +639,27 @@ def getConfigurationRoomAll(request, *args, **kwargs):
 #             }
 #
 # @params: 
-#       urls: "api/configuration/room/create"
+#       urls: "api/configuration/room/command"
+#       - method = "POST":
+#               body (data in JSON format): {
+#                 "room_id": "2",
+#                 "construction_name": "building",
+#                 "x_length": "12",
+#                 "y_length": "25",
+#                 "information": "TETIONSG"
+#             } 
+#       - method = "DELETE":
+#               body (data in JSON format): {"id": ...}
+#       - method = "PUT":
+#               body (data in JSON format): {
+#                 "room_id": "2",
+#                 "construction_name": "building",
+#                 "x_length": "12",
+#                 "y_length": "25",
+#                 "information": "TETIONSG"
+#             } 
 # @return:
-#   if successful
-#       status: 200
-#       data:
-#       {"Resposne": "Successful"}
-#      if not:
-#       status: 
-#       {"Resposne": "Unsuccessful"}
+#   data in JSON format {"Response": ...} + status 
 @api_view(["POST", "DELETE", "PUT"])
 @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
@@ -661,16 +676,20 @@ def configurationRoom(request, *args, **kwargs):
         if new_data_serializer.is_valid():
             new_data_serializer.save()
             print("Successfully save new room to database!")
-            return Response({"Response": "Successful!"}, status=status.HTTP_200_OK)
+            return Response({"Response": "Successfully create new room!"}, status=status.HTTP_200_OK)
         else:
             print("Failed to save new room to database!")
-            return Response({"Response": "Can not save record to database!"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"Response": "Failed to create new room!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     elif request.method == "DELETE":
         id = json.loads(request.body)["id"]
         record = Room.objects.filter(id=id)[0]
         print(record)
-        record.delete()
-        return Response({"Response": "Successfully delete room!"}, status=status.HTTP_200_OK)
+        try:
+            record.delete()
+            return Response({"Response": "Successfully delete room!"}, status=status.HTTP_200_OK)
+        except:
+            print("Failed to delete room!")
+            return Response({"Response": "Failed to delete room!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     elif request.method == "PUT":
         new_setting = json.loads(request.body)
         record = Room.objects.filter(id=new_setting["id"])[0]
@@ -684,9 +703,144 @@ def configurationRoom(request, *args, **kwargs):
             return Response({"Response": "Can not update new room data!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({"Response": "Successfully update new room data"}, status=status.HTTP_200_OK)
     
+##
+# @brief: This view is for creating new room node, deleting node record or configuring record
+#         
+#
+# @params: 
+#       urls: "api/configuration/node/command"
+#       - method = "GET":
+#               query parameter: room_id={room_id}
+#       - method = "POST":
+#               body (data in JSON format): {
+#                 "room_id": ...,
+#                 "node_id": ...,
+#                 "x_axis": ...,
+#                 "y_axis": ...,
+#                 "function": "sensor"/"actuator"
+#             } 
+#       - method = "DELETE":
+#               body (data in JSON format): {"id": ...}
+#       - method = "PUT":
+#               body (data in JSON format): {
+#                 "room_id": ...,
+#                 "node_id": ...,
+#                 "x_axis": ...,
+#                 "y_axis": ...,
+#                 "function": "sensor"/"actuator"
+#             } 
+# @return:
+#       - method = "GET":
+#               all sensor data in json format filtered by room_id given
+#       - all other method:
+#               data in JSON format {"Response": ...} + status 
+@api_view(["GET", "POST", "DELETE", "PUT"])
+@authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
+@permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
+def configurationNode(request, *args, **kwargs):
+    if request.method == "GET":
+        room_id = int(request.GET.get("room_id"))
+        print(room_id)
+        data = Registration.objects.filter(room_id=room_id)
+        data_serializer = RegistrationSerializer(data, many=True) #!< have to add many=True
+        return Response(data_serializer.data, status=status.HTTP_200_OK)
+    if request.method == "POST":
+        new_data = json.loads(request.body)
+        new_data_serializer = RegistrationSerializer(data=new_data)
+        if new_data_serializer.is_valid():
+            new_data_serializer.save()
+            return Response({"Response": "Successfully save new node record!"}, status=status.HTTP_200_OK)
+        else:
+            return Response({"Response": "Unsuccessfully save new node record!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    if request.method == "DELETE":
+        id = json.loads(request.body)["id"]
+        print(id)
+        record = Registration.objects.filter(id=id)[0]
+        print(record)
+        try:
+            record.delete()
+            return Response({"Response": "Successfully delete node!"}, status=status.HTTP_200_OK)
+        except:
+            return Response({"Response": "Unsuccessfully delete node!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    if request.method == "PUT":
+        new_node_data = json.loads(request.body)
+        print(new_node_data)
+        record = Registration.objects.filter(id=new_node_data["id"])[0]
+        record.node_id = new_node_data["node_id"]   #!< each column in a record is like a property of calss object, record is not like dictionary
+        record.x_axis = new_node_data["x_axis"]
+        record.y_axis = new_node_data["y_axis"]
+        record.function = new_node_data["function"]
+
+        try:
+            record.save()
+            return Response({"Response": "Successfully update node!"}, status=status.HTTP_200_OK)
+        except:
+            return Response({"Response": "Unsuccessfully update node!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)       
 
 
 
+##
+# @brief: This view is for sign up new user
+#         
+#
+# @params: 
+#       urls: "api/signup"
+#       - method = "GET":
+#               query parameter: room_id={room_id}
+#       - method = "POST":
+#               body (data in JSON format): {
+#                 "room_id": ...,
+#                 "node_id": ...,
+#                 "x_axis": ...,
+#                 "y_axis": ...,
+#                 "function": "sensor"/"actuator"
+#             } 
+#       - method = "DELETE":
+#               body (data in JSON format): {"id": ...}
+#       - method = "PUT":
+#               body (data in JSON format): {
+#                 "room_id": ...,
+#                 "node_id": ...,
+#                 "x_axis": ...,
+#                 "y_axis": ...,
+#                 "function": "sensor"/"actuator"
+#             } 
+# @return:
+#       - method = "GET":
+#               all sensor data in json format filtered by room_id given
+#       - all other method:
+#               data in JSON format {"Response": ...} + status
+from django.contrib.auth.models import User
+from .serializers import UserSerializer
+@api_view(["GET", "POST"])
+def signUp(request, *args, **kwargs):
+    if request.method == "POST":
+        new_user_data = json.loads(request.body)
+        data = User.objects.all()
+        for i in data:
+            print(i.get_username())
+            if new_user_data["username"] == i.get_username():
+                return Response({"Response": "Username've already existed!"}, status=status.HTTP_417_EXPECTATION_FAILED)
+        new_user = User.objects.create_user(username=new_user_data["username"], password=new_user_data["password"])
+        try:
+            new_user.save()
+            return Response({"Response": "Successfully create user!"}, status=status.HTTP_200_OK)
+        except:
+            return Response({"Response": "Unsuccessfully create user!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+    else:
+        return Response({"Response": "Request method not allowed!"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+#DELETE superuser
+# > python manage.py shell
+# $ from django.contrib.auth.models import User
+# $ User.objects.get(username="name", is_superuser=True).delete()
+
+#overider TokenObtainPariView
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import MyTokenObtainPairSerializer
+class CustomTokeObtainPairview(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
 
 

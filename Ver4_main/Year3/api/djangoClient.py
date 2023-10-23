@@ -40,7 +40,8 @@ def send_timer_to_gateway(client: Client, data: dict):
                 "info": 
                 { 
                     "room_id": data["room_id"],         
-                    "time": data["timer"], 
+                    "time": data["timer"],
+                    "temperature": data["temperature"], 
                 } 
             }
     

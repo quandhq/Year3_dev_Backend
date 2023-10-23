@@ -10,7 +10,8 @@ urlpatterns = [
     path('room/kriging', views.kriging),
     path('v1.1/control/fans',views.send_setpoint), #view to send setpoint to gateway
     path('get/token_auth', obtain_auth_token), #api to get token authentication
-    path('token', TokenObtainPairView.as_view()),
+    # path('token', TokenObtainPairView.as_view()),
+    path('token', views.CustomTokeObtainPairview.as_view()),
     path('token/refresh', TokenRefreshView.as_view()),
     path('token/verify', TokenVerifyView.as_view()),
     path('room', views.getRoomData),    #!< api for getting room data for langingPage component on frontend
@@ -18,5 +19,7 @@ urlpatterns = [
     path('room/AQIdustpm2_5', views.AQIdustpm2_5),  #!< api for InformationTag component
     path('configuration/room/all', views.getConfigurationRoomAll),  #!< api for InformationTag component
     path('configuration/room/command', views.configurationRoom),  #!< api for InformationTag component
+    path('configuration/node/command', views.configurationNode),  #!< api for InformationTag component
+    path('signup', views.signUp),
     #______________________________________________________
 ]

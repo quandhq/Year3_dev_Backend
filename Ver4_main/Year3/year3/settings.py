@@ -78,7 +78,10 @@ INSTALLED_APPS = [
 """
 *brief: this is to declare the time expiring of the access-token and refreshing token of simplejwt application
 """
+
 SIMPLE_JWT = {
+    # It will work instead of the default serializer(TokenObtainPairSerializer).
+    "TOKEN_OBTAIN_SERIALIZER": "api.serializers.MyTokenObtainPairSerializer",
     "ACCESS_TOKEN_LIFETIME": datetime.timedelta(hours=10),
     "REFRESH_TOKEN_LIFETIME": datetime.timedelta(hours=20),
 }

@@ -147,6 +147,7 @@ class SetTimerHistory(models.Model):
                                 )
     time = models.BigIntegerField(db_column="time")
     timer = models.IntegerField(null=False, db_column="timer",)
+    temperature = models.IntegerField(null=False, db_column="temperature",)
     status = models.IntegerField(null=False, db_column="status",) #1 or 0
 
 
