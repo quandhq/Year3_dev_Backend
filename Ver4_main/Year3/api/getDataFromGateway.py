@@ -2,6 +2,7 @@ import mqtt
 import multiprocessing
 import json
 import psycopg2
+from datetime import datetime
 
 broker = "27.71.227.1"
 
@@ -63,7 +64,7 @@ def insert_to_DB(topic,
         #           data['info']['time'])
         cursor.execute(query, record)
         print("Successfully insert SENSORRR to PostgreSQL")
-        print(data['info']['time'])
+        print(f"Date_time: {datetime.fromtimestamp(data['info']['time'])}")
         cursor.close()
         conn.close()
     elif topic == backend_topic_dictionary["get_actuator_data"]:
@@ -72,7 +73,7 @@ def insert_to_DB(topic,
         record = (data["info"]["room_id"], data["info"]["node_id"], data['info']['speed'], data['info']['state'], data['info']['time'])
         cursor.execute(query, record)
         print("Successfully insert ACTUATORRR to PostgreSQL")
-        print(data['info']['time'])
+        print(f"Date_time: {datetime.fromtimestamp(data['info']['time'])}")
         cursor.close()
         conn.close()
     elif topic == backend_topic_dictionary["room_sync_gateway_backend"]:
