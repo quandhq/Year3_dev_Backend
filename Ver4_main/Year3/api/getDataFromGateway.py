@@ -221,7 +221,7 @@ def run(topic):
                     msg_response["operator"] = "room_sync_ack"
                     client.publish(backend_topic_dictionary["room_sync_gateway_backend"], json.dumps(msg_response))
             except:
-                print("Error in getDataFromGateway.py")
+                print("!!!!!Error in getDataFromGateway.py while synchronizing")
                 time.sleep(10)
     else:
         while(1):
@@ -241,7 +241,7 @@ def run(topic):
                                 'localhost', 
                                 '5432')
             except:
-                print("Error in getDataFromGateway.py")
+                print("!!!!!!Error in getDataFromGateway.py while insert data to database")
                 time.sleep(10)
 
 if __name__ == "__main__":
