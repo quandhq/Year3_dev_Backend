@@ -3,6 +3,7 @@ import multiprocessing
 import json
 import psycopg2
 from datetime import datetime
+import time
 
 broker = "27.71.227.1"
 
@@ -192,11 +193,43 @@ def run(topic):
     #
     if topic == backend_topic_dictionary["room_sync_gateway_backend"]:
         while(1):
-            temp = client.msg_arrive()
-            if temp != None:
-                print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
-                msg = json.loads(temp)
-                if msg["operator"] == "room_sync":
+            try:
+                temp = client.msg_arrive()
+                if temp != None:
+                    print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
+                    msg = json.loads(temp)
+                    if msg["operator"] == "room_sync":
+                        insert_to_DB(topic,
+                                    msg,
+                                    # 'smartfarm', 
+                                    # 'year3', 
+                                    # 'year3',
+                                    'smartfarm',
+                                    'year3',
+                                    'year3',
+                                    'localhost', 
+                                    '5432')
+                    else:
+                        continue
+                    msg_response = {
+                            "operator": "room_sync_ack",
+                            "status": 0,
+                            "info":
+                            {
+                            }
+                        }
+                    msg_response["operator"] = "room_sync_ack"
+                    client.publish(backend_topic_dictionary["room_sync_gateway_backend"], json.dumps(msg_response))
+            except:
+                print("Error in getDataFromGateway.py")
+                time.sleep(10)
+    else:
+        while(1):
+            try:
+                temp = client.msg_arrive()
+                if temp != None:
+                    print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
+                    msg = json.loads(temp)
                     insert_to_DB(topic,
                                 msg,
                                 # 'smartfarm', 
@@ -207,34 +240,9 @@ def run(topic):
                                 'year3',
                                 'localhost', 
                                 '5432')
-                else:
-                    continue
-                msg_response = {
-                        "operator": "room_sync_ack",
-                        "status": 0,
-                        "info":
-                        {
-                        }
-                    }
-                msg_response["operator"] = "room_sync_ack"
-                client.publish(backend_topic_dictionary["room_sync_gateway_backend"], json.dumps(msg_response))
-    else:
-        while(1):
-            temp = client.msg_arrive()
-            if temp != None:
-                print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
-                msg = json.loads(temp)
-                insert_to_DB(topic,
-                            msg,
-                            # 'smartfarm', 
-                            # 'year3', 
-                            # 'year3',
-                            'smartfarm',
-                            'year3',
-                            'year3',
-                            'localhost', 
-                            '5432')
-        
+            except:
+                print("Error in getDataFromGateway.py")
+                time.sleep(10)
 
 if __name__ == "__main__":
     process_list = []
