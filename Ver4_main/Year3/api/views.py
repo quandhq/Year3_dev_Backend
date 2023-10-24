@@ -55,114 +55,117 @@ print("Setting views.py")
 @api_view(["POST", "GET"])
 @authentication_classes([jwtauthentication.JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
-def getSensorSecondlyData(request , *args, **kwargs):    
-    room_id = int(request.GET.get("room_id"))   #!< the query parameter is in string form
-    filter = int(request.GET.get("filter"))
-    node_id = int(request.GET.get("node_id"))
-    print(node_id)
-    print(filter)
-    dict_filter = {"1D": 1, "1W": 2, "1M": 3, "6M": 4, "1Y": 5}
-    #Notice that: the timestamp in database is the utc timestamp + 7hour
-    #Our local time stamp is faster than than the utc timestamp 7 hour
-    ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
-    print(ctime)
-    filter_time = 0 
-    if filter == 1:
-        filter_time = ctime - ctime%(24*60*60)
-    elif filter == 2:
-        filter_time = ctime - ctime%(24*60*60) - 24*60*60*7
-    elif filter == 3:
-        filter_time = ctime - ctime%(24*60*60) - 24*60*60*31
-    elif filter == 4:
-        filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*6
-    elif filter == 5:
-        filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
-    else:
-        filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
-    
-    print(filter_time)
-         
-    parameter_key_list = ["co2", "temp", "hum", "light", 
-                            "dust", "sound", "red", "green", 
-                            "blue", "tvoc", "motion", "time"]
-    
-    #Get all the node_id that is now presented in room
-    sensor_node_id_list = [i["node_id"] for i in RegistrationSerializer(models.Registration.objects.filter(room_id=room_id, function="sensor"), many=True).data] #!< have to add many=True
-    #Get all 100 record for each node_id and put all in an list
-    total_list = []
-    if node_id == 0:
+def getSensorSecondlyData(request , *args, **kwargs):
+    try: 
+        room_id = int(request.GET.get("room_id"))   #!< the query parameter is in string form
+        filter = int(request.GET.get("filter"))
+        node_id = int(request.GET.get("node_id"))
+        print(node_id)
+        print(filter)
+        dict_filter = {"1D": 1, "1W": 2, "1M": 3, "6M": 4, "1Y": 5}
+        #Notice that: the timestamp in database is the utc timestamp + 7hour
+        #Our local time stamp is faster than than the utc timestamp 7 hour
+        ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
+        print(ctime)
+        filter_time = 0 
+        if filter == 1:
+            filter_time = ctime - ctime%(24*60*60)
+        elif filter == 2:
+            filter_time = ctime - ctime%(24*60*60) - 24*60*60*7
+        elif filter == 3:
+            filter_time = ctime - ctime%(24*60*60) - 24*60*60*31
+        elif filter == 4:
+            filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*6
+        elif filter == 5:
+            filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
+        else:
+            filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
+        
         print(filter_time)
-        for each_node_id in sensor_node_id_list:
-            if models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=each_node_id).count() > 0:
-                data = RawSensorMonitorSerializer(models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=each_node_id).order_by("-time"), many=True).data #!< have to add many=True
+            
+        parameter_key_list = ["co2", "temp", "hum", "light", 
+                                "dust", "sound", "red", "green", 
+                                "blue", "tvoc", "motion", "time"]
+        
+        #Get all the node_id that is now presented in room
+        sensor_node_id_list = [i["node_id"] for i in RegistrationSerializer(models.Registration.objects.filter(room_id=room_id, function="sensor"), many=True).data] #!< have to add many=True
+        #Get all 100 record for each node_id and put all in an list
+        total_list = []
+        if node_id == 0:
+            print(filter_time)
+            for each_node_id in sensor_node_id_list:
+                if models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=each_node_id).count() > 0:
+                    data = RawSensorMonitorSerializer(models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=each_node_id).order_by("-time"), many=True).data #!< have to add many=True
+                    data.reverse()
+                    total_list.append(data)
+        else:
+            if models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=node_id).count() > 0:
+                data = RawSensorMonitorSerializer(models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=node_id).order_by("-time"), many=True).data #!< have to add many=True
                 data.reverse()
-                total_list.append(data)
-    else:
-        if models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=node_id).count() > 0:
-            data = RawSensorMonitorSerializer(models.RawSensorMonitor.objects.filter(time__gt=filter_time, room_id=room_id, node_id=node_id).order_by("-time"), many=True).data #!< have to add many=True
-            data.reverse()
-            total_list.append(data) 
-         
+                total_list.append(data) 
+            
 
 
-    if len(total_list) == 0:
+        if len(total_list) == 0:
+            return_data = {}
+            for i in parameter_key_list:
+                return_data[i] = []
+            return Response(return_data, status=status.HTTP_204_NO_CONTENT) 
+        #!< Get an average data of each group of records id (ignore the 0 value) and the time of one record (latest) and add them to return data 
+
+        for i in total_list:
+            print(len(i))
+        print("////....")
+        min_len_of_array_in_total_list = min([len(i) for i in total_list])
+        max_len_of_array_in_total_list = max([len(i) for i in total_list])
+        print(min_len_of_array_in_total_list)
+        print(max_len_of_array_in_total_list)
+        # total_list = [i[-min_len_of_array_in_total_list:] for i in total_list]
+        for i in total_list:
+            print(len(i))
+
+        for i in total_list:
+            if len(i) < max_len_of_array_in_total_list:
+                for j in range(0, max_len_of_array_in_total_list - len(i)):
+                    i.insert(0, {k: -1 for k in parameter_key_list})
+
+        for i in total_list:
+            print(len(i))
+
+        
         return_data = {}
+        buffer = {}
         for i in parameter_key_list:
             return_data[i] = []
-        return Response(return_data, status=status.HTTP_204_NO_CONTENT) 
-    #!< Get an average data of each group of records id (ignore the 0 value) and the time of one record (latest) and add them to return data 
-
-    for i in total_list:
-        print(len(i))
-    print("////....")
-    min_len_of_array_in_total_list = min([len(i) for i in total_list])
-    max_len_of_array_in_total_list = max([len(i) for i in total_list])
-    print(min_len_of_array_in_total_list)
-    print(max_len_of_array_in_total_list)
-    # total_list = [i[-min_len_of_array_in_total_list:] for i in total_list]
-    for i in total_list:
-        print(len(i))
-
-    for i in total_list:
-        if len(i) < max_len_of_array_in_total_list:
-            for j in range(0, max_len_of_array_in_total_list - len(i)):
-                i.insert(0, {k: -1 for k in parameter_key_list})
-
-    for i in total_list:
-        print(len(i))
-
-    
-    return_data = {}
-    buffer = {}
-    for i in parameter_key_list:
-        return_data[i] = []
-        if i != "time":
-            buffer[i] = {"value": 0, "number": 0}
-        else:
-            buffer[i] = []    #!< is used to get the max value of time
-    print(len(total_list[0]))
-    for i in range(len(total_list[0])):
-        for each_element_in_total_list in total_list:
-            for j in  parameter_key_list:
-                if j != "time" and each_element_in_total_list[i][j] >= 0:
-                    buffer[j]["value"] = buffer[j]["value"] +  each_element_in_total_list[i][j]
-                    buffer[j]["number"] = buffer[j]["number"] +  1
-                elif j == "time" and each_element_in_total_list[i][j] >= 0:
-                    buffer[j].append(each_element_in_total_list[i][j])
-                else:
-                    continue
-        for j in parameter_key_list:
-            if j == "time":
-                return_data[j].append(max(buffer[j])) 
-                buffer[j] = []  #!< reset value
+            if i != "time":
+                buffer[i] = {"value": 0, "number": 0}
             else:
-                if buffer[j]["number"] != 0:
-                    return_data[j].append(round(buffer[j]["value"]/(buffer[j]["number"]),2 ))	
+                buffer[i] = []    #!< is used to get the max value of time
+        print(len(total_list[0]))
+        for i in range(len(total_list[0])):
+            for each_element_in_total_list in total_list:
+                for j in  parameter_key_list:
+                    if j != "time" and each_element_in_total_list[i][j] >= 0:
+                        buffer[j]["value"] = buffer[j]["value"] +  each_element_in_total_list[i][j]
+                        buffer[j]["number"] = buffer[j]["number"] +  1
+                    elif j == "time" and each_element_in_total_list[i][j] >= 0:
+                        buffer[j].append(each_element_in_total_list[i][j])
+                    else:
+                        continue
+            for j in parameter_key_list:
+                if j == "time":
+                    return_data[j].append(max(buffer[j])) 
+                    buffer[j] = []  #!< reset value
                 else:
-                    return_data[j].append(0)
-                buffer[j]["value"] = 0
-                buffer[j]["number"] = 0
-    return Response(return_data, status=status.HTTP_200_OK)
+                    if buffer[j]["number"] != 0:
+                        return_data[j].append(round(buffer[j]["value"]/(buffer[j]["number"]),2 ))	
+                    else:
+                        return_data[j].append(0)
+                    buffer[j]["value"] = 0
+                    buffer[j]["number"] = 0
+        return Response(return_data, status=status.HTTP_200_OK)
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 	  
@@ -232,27 +235,31 @@ from .djangoClient import send_timer_to_gateway, client
 @authentication_classes([jwtauthentication.JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def setTimerActuator(request, *args, **kwargs):
-    room_id = request.GET.get("room_id")
-    timer = json.loads(request.body)
-    print(timer)
-    result = send_timer_to_gateway(client, {"timer": timer["time"],"temperature": timer["temperature"] ,"room_id": room_id})
-    #send data to gateway and wait for return
-    new_data = {"room_id": room_id, 
-                "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
-                "timer": timer["time"],
-                "temperature": timer["temperature"],
-                "status": result,
-                }
-    new_data_serializer = SetTimerHistorySerializer(data=new_data)
-    if new_data_serializer.is_valid():
-        new_data_serializer.save()
-        if result == 1:
-            return Response({"Response": "Successful"}, status=status.HTTP_200_OK)
-        if result == 0:
-            return Response({"Response": "Unsuccessfully set timer"}, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return Response({"Response": "Can not save record to database"}, status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION)
-    #save to database 
+    try:
+        room_id = request.GET.get("room_id")
+        timer = json.loads(request.body)
+        print(timer)
+        result = send_timer_to_gateway(client, {"timer": timer["time"],"temperature": timer["temperature"] ,"room_id": room_id})
+        #send data to gateway and wait for return
+        new_data = {"room_id": room_id, 
+                    "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
+                    "timer": timer["time"],
+                    "temperature": timer["temperature"],
+                    "status": result,
+                    }
+        new_data_serializer = SetTimerHistorySerializer(data=new_data)
+        if new_data_serializer.is_valid():
+            new_data_serializer.save()
+            if result == 1:
+                return Response({"Response": "Successful"}, status=status.HTTP_200_OK)
+            if result == 0:
+                return Response({"Response": "Unsuccessfully set timer"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"Response": "Can not save record to database"}, status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION)
+        #save to database 
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
 
 
@@ -278,33 +285,37 @@ from .kriging import Kriging
 @authentication_classes([jwtauthentication.JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])      
 def kriging(request, *args, **kwargs):
-    room_id = request.GET.get("room_id")
-    default_X = []          #default axis x of id 3,4,5,6
-    default_Y = []     #default axis y of id 3,4,5,6
-    default_value = []    #this is default-type value of all known-points
-    all_sensor_node_in_this_room = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="sensor"), 
-                                                            many=True).data #!< have to add many=True
-    room_size = RoomSerializer(Room.objects.filter(room_id=room_id), many=True).data[0] #!< have to add many=True
-    for node in all_sensor_node_in_this_room:
-        # 1. Get the x axis and y axis of all sensor nodes
-        default_X.append(node["x_axis"])
-        default_Y.append(node["y_axis"])
-        # 2. Get all sensor nodes' values (in order according to the two above array of course)
-        if RawSensorMonitor.objects.filter(node_id=node["node_id"]).count() >= 1:
-            default_value.append((RawSensorMonitorSerializer(RawSensorMonitor.objects.filter(node_id=node["node_id"]).order_by('-time'),
-                                                            many=True).data)[0]["temp"]) #!< have to add many=True
-        else:
-            # if len(default_X) >=1 and len(default_Y) >=1: 
-            #    default_X.pop()
-            #    default_Y.pop()
-            default_value.append(0)
+    try:
+        room_id = request.GET.get("room_id")
+        default_X = []          #default axis x of id 3,4,5,6
+        default_Y = []     #default axis y of id 3,4,5,6
+        default_value = []    #this is default-type value of all known-points
+        all_sensor_node_in_this_room = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="sensor"), 
+                                                                many=True).data #!< have to add many=True
+        room_size = RoomSerializer(Room.objects.filter(room_id=room_id), many=True).data[0] #!< have to add many=True
+        for node in all_sensor_node_in_this_room:
+            # 1. Get the x axis and y axis of all sensor nodes
+            default_X.append(node["x_axis"])
+            default_Y.append(node["y_axis"])
+            # 2. Get all sensor nodes' values (in order according to the two above array of course)
+            if RawSensorMonitor.objects.filter(node_id=node["node_id"]).count() >= 1:
+                default_value.append((RawSensorMonitorSerializer(RawSensorMonitor.objects.filter(node_id=node["node_id"]).order_by('-time'),
+                                                                many=True).data)[0]["temp"]) #!< have to add many=True
+            else:
+                # if len(default_X) >=1 and len(default_Y) >=1: 
+                #    default_X.pop()
+                #    default_Y.pop()
+                default_value.append(0)
 
-    
-    k = Kriging(10, 10, default_value, default_X, default_Y, room_size["x_length"], room_size["y_length"])
-    test = k.interpolation()
-    response = {'data': test[2], 'resolutionX': k.resolutionX, 'resolutionY': k.resolutionY}
+        
+        k = Kriging(10, 10, default_value, default_X, default_Y, room_size["x_length"], room_size["y_length"])
+        test = k.interpolation()
+        response = {'data': test[2], 'resolutionX': k.resolutionX, 'resolutionY': k.resolutionY}
 
-    return Response(response, status=status.HTTP_200_OK)     
+        return Response(response, status=status.HTTP_200_OK)     
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
@@ -342,27 +353,31 @@ from .processDataChart import getOptionDayData, getOptionMonthData, getOptionYea
 @authentication_classes([jwtauthentication.JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def historyChart(request, *args, **kwargs):
-	if("option" in request.GET):
-		option = request.GET.get("option")  #!< query parameter inside an URL is a string not a integer
-		room_id = request.GET.get("room_id")   #!< query parameter inside an URL is a string not a integer
-		node_id = request.GET.get("node_id")   #!< query parameter inside an URL is a string not a integer
-		time_start = request.GET.get("time_start")   #!< query parameter inside an URL is a string not a integer
-		time_end = request.GET.get("time_end") #!< query parameter inside an URL is a string not a integer
-		print(str(option), int(room_id), int(node_id), int(time_start), int(time_end))
-		result_data = None
-		if(option == "day"): 
-			result_data = getOptionDayData(int(time_start), int(room_id), int(node_id))
-			return Response(result_data, status=status.HTTP_200_OK)      
-		elif(option == "month"):
-			result_data = getOptionMonthData(int(time_start), int(time_end), int(room_id), int(node_id))
-			return Response(result_data, status=status.HTTP_200_OK)       
-		elif(option == "year"):
-			result_data = getOptionYearData(int(time_start), int(time_end), int(room_id), int(node_id))
-			return Response(result_data, status=status.HTTP_200_OK)       
-		else:
-			return Response({"Response": "Option provided is NOT valid"}, status=status.HTTP_400_BAD_REQUEST)
-	else:
-		return Response({"Response": "Option is not provided"}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        if("option" in request.GET):
+            option = request.GET.get("option")  #!< query parameter inside an URL is a string not a integer
+            room_id = request.GET.get("room_id")   #!< query parameter inside an URL is a string not a integer
+            node_id = request.GET.get("node_id")   #!< query parameter inside an URL is a string not a integer
+            time_start = request.GET.get("time_start")   #!< query parameter inside an URL is a string not a integer
+            time_end = request.GET.get("time_end") #!< query parameter inside an URL is a string not a integer
+            print(str(option), int(room_id), int(node_id), int(time_start), int(time_end))
+            result_data = None
+            if(option == "day"): 
+                result_data = getOptionDayData(int(time_start), int(room_id), int(node_id))
+                return Response(result_data, status=status.HTTP_200_OK)      
+            elif(option == "month"):
+                result_data = getOptionMonthData(int(time_start), int(time_end), int(room_id), int(node_id))
+                return Response(result_data, status=status.HTTP_200_OK)       
+            elif(option == "year"):
+                result_data = getOptionYearData(int(time_start), int(time_end), int(room_id), int(node_id))
+                return Response(result_data, status=status.HTTP_200_OK)       
+            else:
+                return Response({"Response": "Option provided is NOT valid"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"Response": "Option is not provided"}, status=status.HTTP_400_BAD_REQUEST)
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
@@ -420,25 +435,28 @@ def historyChart(request, *args, **kwargs):
 @authentication_classes([jwtauthentication.JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def getRoomData(request, *args, **kwargs):
-	Room_all_data = Room.objects.all()  #!< get all records in Room table
-	RoomSerializer_instance = RoomSerializer(Room_all_data, many=True)   #!< HAVE TO ADD "many=True"
-	# RegistrationSerializer_inst
-	response_dict = {"farm": [], "building": []}
-	for element in RoomSerializer_instance.data:
-		if element["construction_name"] == "farm":
-			#!v get all node data that is in this room
-			node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"])
-			#!v create one more field "node_array" in this element
-			element["node_array"] = RegistrationSerializer(node_data_in_room_element, many=True).data #!< HAVE TO ADD "many=True"
-			response_dict["farm"].append(element)
-		elif element["construction_name"] == "building":
-			#!v get all node data that is in this room
-			node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"])
-			#!v create one more field "node_array" int this element
-			element["node_array"] = RegistrationSerializer(node_data_in_room_element, many=True).data #!< HAVE TO ADD "many=True"
-			response_dict["building"].append(element)
-	return Response(response_dict, status=status.HTTP_200_OK)
-	
+    try:
+        Room_all_data = Room.objects.all()  #!< get all records in Room table
+        RoomSerializer_instance = RoomSerializer(Room_all_data, many=True)   #!< HAVE TO ADD "many=True"
+        # RegistrationSerializer_inst
+        response_dict = {"farm": [], "building": []}
+        for element in RoomSerializer_instance.data:
+            if element["construction_name"] == "farm":
+                #!v get all node data that is in this room
+                node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"])
+                #!v create one more field "node_array" in this element
+                element["node_array"] = RegistrationSerializer(node_data_in_room_element, many=True).data #!< HAVE TO ADD "many=True"
+                response_dict["farm"].append(element)
+            elif element["construction_name"] == "building":
+                #!v get all node data that is in this room
+                node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"])
+                #!v create one more field "node_array" int this element
+                element["node_array"] = RegistrationSerializer(node_data_in_room_element, many=True).data #!< HAVE TO ADD "many=True"
+                response_dict["building"].append(element)
+        return Response(response_dict, status=status.HTTP_200_OK)
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
    
 #######################################################################
 # @brief This view is for get data for InformationTag component in 
@@ -466,62 +484,66 @@ def getRoomData(request, *args, **kwargs):
 @authentication_classes([jwtauthentication.JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def getRoomInformationTag(request, *args, **kwargs):
-    room_id = request.GET["room_id"]
-    print(room_id)
-    if RawSensorMonitor.objects.count() != 0:
-        # 1.Get all node_id s that belong to this room
-        if Registration.objects.filter(room_id=room_id, function="sensor").count() == 0:
+    try:
+        room_id = request.GET["room_id"]
+        print(room_id)
+        if RawSensorMonitor.objects.count() != 0:
+            # 1.Get all node_id s that belong to this room
+            if Registration.objects.filter(room_id=room_id, function="sensor").count() == 0:
+                parameter_key_list = {"co2", "temp", "hum", "light", "dust", "sound", "red", "green", "blue", "tvoc", "motion"}
+                average_data_to_return = {}
+                for i in parameter_key_list:
+                    average_data_to_return[i] = -1
+                    average_data_to_return["time"] = 0
+                return Response(average_data_to_return, status=status.HTTP_200_OK)
+            all_node_id_of_this_room_id = Registration.objects.filter(room_id=room_id, function="sensor")
+            RegistrationSerializer_instance = RegistrationSerializer(all_node_id_of_this_room_id, many=True)   #!< Have to add many=True
+            all_node_id_of_this_room_id_list = [ i["node_id"] for i in RegistrationSerializer_instance.data]
+            print(all_node_id_of_this_room_id_list)
+            # 2.get the latest data for each node_id
+            latest_data_of_each_node_id_in_this_room = []
+            for each_node_id in all_node_id_of_this_room_id_list:
+                if RawSensorMonitor.objects.filter(room_id=room_id, node_id=each_node_id).exists():   #!< if records of this node_id exist ...
+                    data_of_this_node_id = RawSensorMonitor.objects.filter(room_id=room_id, node_id=each_node_id).order_by('-time')[0]  #!< get the latest record of this node_id
+                    latest_data_of_each_node_id_in_this_room.append(RawSensorMonitorSerializer(data_of_this_node_id).data)
+                else:
+                    continue
+            # 3. get the average data of them
             parameter_key_list = {"co2", "temp", "hum", "light", "dust", "sound", "red", "green", "blue", "tvoc", "motion"}
             average_data_to_return = {}
-            for i in parameter_key_list:
-                average_data_to_return[i] = -1
-                average_data_to_return["time"] = 0
-            return Response(average_data_to_return, status=status.HTTP_200_OK)
-        all_node_id_of_this_room_id = Registration.objects.filter(room_id=room_id, function="sensor")
-        RegistrationSerializer_instance = RegistrationSerializer(all_node_id_of_this_room_id, many=True)   #!< Have to add many=True
-        all_node_id_of_this_room_id_list = [ i["node_id"] for i in RegistrationSerializer_instance.data]
-        print(all_node_id_of_this_room_id_list)
-        # 2.get the latest data for each node_id
-        latest_data_of_each_node_id_in_this_room = []
-        for each_node_id in all_node_id_of_this_room_id_list:
-            if RawSensorMonitor.objects.filter(room_id=room_id, node_id=each_node_id).exists():   #!< if records of this node_id exist ...
-                data_of_this_node_id = RawSensorMonitor.objects.filter(room_id=room_id, node_id=each_node_id).order_by('-time')[0]  #!< get the latest record of this node_id
-                latest_data_of_each_node_id_in_this_room.append(RawSensorMonitorSerializer(data_of_this_node_id).data)
-            else:
-                continue
-        # 3. get the average data of them
-        parameter_key_list = {"co2", "temp", "hum", "light", "dust", "sound", "red", "green", "blue", "tvoc", "motion"}
-        average_data_to_return = {}
-        # for element in latest_data_of_each_node_id_in_this_room:
-        df = pd.DataFrame(latest_data_of_each_node_id_in_this_room)
-        df.sort_values(by="time", ascending=False, inplace=True, )
-        average_data_to_return["time"] = df.iloc[0]["time"]   #!< get the time of the latest record
-        df = df.replace(-1, np.nan)
-        average_df = df.mean(numeric_only = True,)   #!< calculate average value of all column existing in dataframe
-        for para in parameter_key_list:
-            if para in average_df:
-                if para not in average_data_to_return:
-                    average_data_to_return[para] = []
-                    average_data_to_return[para].append(int(average_df[para]) if str(average_df[para]) != "nan" else -1)
+            # for element in latest_data_of_each_node_id_in_this_room:
+            df = pd.DataFrame(latest_data_of_each_node_id_in_this_room)
+            df.sort_values(by="time", ascending=False, inplace=True, )
+            average_data_to_return["time"] = df.iloc[0]["time"]   #!< get the time of the latest record
+            df = df.replace(-1, np.nan)
+            average_df = df.mean(numeric_only = True,)   #!< calculate average value of all column existing in dataframe
+            for para in parameter_key_list:
+                if para in average_df:
+                    if para not in average_data_to_return:
+                        average_data_to_return[para] = []
+                        average_data_to_return[para].append(int(average_df[para]) if str(average_df[para]) != "nan" else -1)
+                    else:
+                        average_data_to_return[para].append(int(average_df[para]) if str(average_df[para]) != "nan" else -1)
                 else:
-                    average_data_to_return[para].append(int(average_df[para]) if str(average_df[para]) != "nan" else -1)
-            else:
-                continue
-        # 5. Get nodes information
-        sensor_node_information_in_this_room_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="sensor"), many=True).data #!< have to add many=True
-        actuator_node_information_in_this_room_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="actuator"), many=True).data  #!< have to add many=True
-        average_data_to_return["node_info"] = {"sensor": sensor_node_information_in_this_room_list,
-                                                "actuator": actuator_node_information_in_this_room_list}
-        # 6. Get room size 
-        room_size_data = RoomSerializer(Room.objects.filter(room_id=room_id), many=True).data #!< have to include many=True
-        average_data_to_return["room_size"] = {"x_length": room_size_data[0]["x_length"], "y_length": room_size_data[0]["y_length"]}
-            
-        return Response(average_data_to_return, status=status.HTTP_200_OK)
-        # data = RawSensorMonitor.objects.order_by('-time')[0]     #!< get the latest record in model according to timeline
-        # RawSensorMonitorSerializer_instance = RawSensorMonitorSerializer(data)
-        # return Response(RawSensorMonitorSerializer_instance.data, status=status.HTTP_200_OK)
-    else:
-        return Response({"message": "No content!"}, status=status.HTTP_204_NO_CONTENT)
+                    continue
+            # 5. Get nodes information
+            sensor_node_information_in_this_room_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="sensor"), many=True).data #!< have to add many=True
+            actuator_node_information_in_this_room_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="actuator"), many=True).data  #!< have to add many=True
+            average_data_to_return["node_info"] = {"sensor": sensor_node_information_in_this_room_list,
+                                                    "actuator": actuator_node_information_in_this_room_list}
+            # 6. Get room size 
+            room_size_data = RoomSerializer(Room.objects.filter(room_id=room_id), many=True).data #!< have to include many=True
+            average_data_to_return["room_size"] = {"x_length": room_size_data[0]["x_length"], "y_length": room_size_data[0]["y_length"]}
+                
+            return Response(average_data_to_return, status=status.HTTP_200_OK)
+            # data = RawSensorMonitor.objects.order_by('-time')[0]     #!< get the latest record in model according to timeline
+            # RawSensorMonitorSerializer_instance = RawSensorMonitorSerializer(data)
+            # return Response(RawSensorMonitorSerializer_instance.data, status=status.HTTP_200_OK)
+        else:
+            return Response({"message": "No content!"}, status=status.HTTP_204_NO_CONTENT)
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
@@ -540,78 +562,82 @@ def getRoomInformationTag(request, *args, **kwargs):
 @authentication_classes([jwtauthentication.JWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def AQIdustpm2_5(request, *args, **kwargs):
-    room_id = int(request.GET.get("room_id"))
-    pm2_5_table = [
-        {"conclo": 0.0, "conchi": 12.0, "aqilo": 0, "aqihi": 50,},
-        {"conclo": 12.1, "conchi": 35.4, "aqilo": 51, "aqihi": 100,},
-        {"conclo": 35.5, "conchi": 55.4, "aqilo": 101, "aqihi": 150,},
-        {"conclo": 55.5, "conchi": 150.4, "aqilo": 151, "aqihi": 200,},
-        {"conclo": 150.5, "conchi": 250.4, "aqilo": 201, "aqihi": 300,},
-        {"conclo": 250.5, "conclo": 500.4, "aqilo": 301, "aqihi": 500,},
-    ]
-    hourly = 0
-    daily = 0
-    ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
-    print(ctime)
-    #calculate hourly data
-    filter_time = ctime - 12*60*60
-    node_sensor_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id),many=True)
-    hourly_dust_data = RawSensorMonitorSerializer(RawSensorMonitor.objects.filter(room_id=room_id, time__gt=filter_time, dust__gt=0), many=True).data #!< have to add many=True
-    if len(hourly_dust_data) != 0:
-        df = pd.DataFrame(hourly_dust_data)
-        df = df[["time", "id", "dust"]]
-        df['datetime'] = pd.to_datetime(df['time'], unit='s')
-        df["hour"] = df["datetime"].dt.hour
-        df = df.groupby(['hour'], as_index=False).mean()
-        df.sort_values(by='hour', ascending=False, inplace=True)
-        print(df)
-        power_index = 0
-        pre_row = None
-        l = []
-        first_record_flag = True
-        for index, row in df.iterrows():
-            if first_record_flag:
-                pre_row = row["hour"]
-                l.append({"value": row["dust"], "pow": power_index})
-                first_record_flag = False
-            else:
-                dif = pre_row - row["hour"]
-                pre_row = row["hour"]
-                power_index = int(power_index + dif)
-                l.append({"value": row["dust"], "pow": power_index})
+    try:
+        room_id = int(request.GET.get("room_id"))
+        pm2_5_table = [
+            {"conclo": 0.0, "conchi": 12.0, "aqilo": 0, "aqihi": 50,},
+            {"conclo": 12.1, "conchi": 35.4, "aqilo": 51, "aqihi": 100,},
+            {"conclo": 35.5, "conchi": 55.4, "aqilo": 101, "aqihi": 150,},
+            {"conclo": 55.5, "conchi": 150.4, "aqilo": 151, "aqihi": 200,},
+            {"conclo": 150.5, "conchi": 250.4, "aqilo": 201, "aqihi": 300,},
+            {"conclo": 250.5, "conclo": 500.4, "aqilo": 301, "aqihi": 500,},
+        ]
+        hourly = 0
+        daily = 0
+        ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
+        print(ctime)
+        #calculate hourly data
+        filter_time = ctime - 12*60*60
+        node_sensor_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id),many=True)
+        hourly_dust_data = RawSensorMonitorSerializer(RawSensorMonitor.objects.filter(room_id=room_id, time__gt=filter_time, dust__gt=0), many=True).data #!< have to add many=True
+        if len(hourly_dust_data) != 0:
+            df = pd.DataFrame(hourly_dust_data)
+            df = df[["time", "id", "dust"]]
+            df['datetime'] = pd.to_datetime(df['time'], unit='s')
+            df["hour"] = df["datetime"].dt.hour
+            df = df.groupby(['hour'], as_index=False).mean()
+            df.sort_values(by='hour', ascending=False, inplace=True)
+            print(df)
+            power_index = 0
+            pre_row = None
+            l = []
+            first_record_flag = True
+            for index, row in df.iterrows():
+                if first_record_flag:
+                    pre_row = row["hour"]
+                    l.append({"value": row["dust"], "pow": power_index})
+                    first_record_flag = False
+                else:
+                    dif = pre_row - row["hour"]
+                    pre_row = row["hour"]
+                    power_index = int(power_index + dif)
+                    l.append({"value": row["dust"], "pow": power_index})
 
-        print(l)
-        temp_list = [i["value"] for i in l]
-        range = round(max(temp_list) - min(temp_list),1)
-        scaled_rate_of_change = range/max(temp_list)
-        weight_factor = 1 - scaled_rate_of_change
-        weight_factor = 0.5 if weight_factor < 0.5 else round(weight_factor, 1)
-        sum = 0
-        sum_of_power = 0
-        
-        for i in l:
-            sum = sum + i["value"]*pow(weight_factor, i["pow"])
-            sum_of_power = sum_of_power + pow(weight_factor, i["pow"])
+            print(l)
+            temp_list = [i["value"] for i in l]
+            range = round(max(temp_list) - min(temp_list),1)
+            scaled_rate_of_change = range/max(temp_list)
+            weight_factor = 1 - scaled_rate_of_change
+            weight_factor = 0.5 if weight_factor < 0.5 else round(weight_factor, 1)
+            sum = 0
+            sum_of_power = 0
             
-        hourly = round(sum/sum_of_power, 1)
-        conclo = None
-        conchi = None
-        aqilo = None
-        aqihi = None
-        for i in pm2_5_table:
-            if round(hourly) > 500:
-                hourly = 500
-                break
-            if round(hourly) <= i["conchi"] and round(hourly) >= i["conclo"]:        
-                conclo = i["conclo"]
-                conchi = i["conchi"]
-                aqilo = i["aqilo"]
-                aqihi = i["aqihi"]
-                hourly = round((aqihi - aqilo)*(hourly-conclo)/(conchi-conclo) + aqilo)
-                break
-        print(hourly)
-            
-    return Response({"hourly": hourly, "daily": 0}, status=200)
+            for i in l:
+                sum = sum + i["value"]*pow(weight_factor, i["pow"])
+                sum_of_power = sum_of_power + pow(weight_factor, i["pow"])
+                
+            hourly = round(sum/sum_of_power, 1)
+            conclo = None
+            conchi = None
+            aqilo = None
+            aqihi = None
+            for i in pm2_5_table:
+                if round(hourly) > 500:
+                    hourly = 500
+                    break
+                if round(hourly) <= i["conchi"] and round(hourly) >= i["conclo"]:        
+                    conclo = i["conclo"]
+                    conchi = i["conchi"]
+                    aqilo = i["aqilo"]
+                    aqihi = i["aqihi"]
+                    hourly = round((aqihi - aqilo)*(hourly-conclo)/(conchi-conclo) + aqilo)
+                    break
+            print(hourly)
+                
+        return Response({"hourly": hourly, "daily": 0}, status=200)
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
@@ -638,11 +664,15 @@ def AQIdustpm2_5(request, *args, **kwargs):
 @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
 def getConfigurationRoomAll(request, *args, **kwargs):
-    if Room.objects.count() > 0:
-        all_room_data = RoomSerializer(Room.objects.all(), many=True).data  #!< have to add many=True
-        return Response(all_room_data, status=status.HTTP_200_OK)
-    else:
-        return Response([], status=status.HTTP_200_OK) 
+    try:
+        if Room.objects.count() > 0:
+            all_room_data = RoomSerializer(Room.objects.all(), many=True).data  #!< have to add many=True
+            return Response(all_room_data, status=status.HTTP_200_OK)
+        else:
+            return Response([], status=status.HTTP_200_OK) 
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 ##
 # @brief: This view is for creating new room record, deleting room record or configuring record
@@ -681,44 +711,48 @@ def getConfigurationRoomAll(request, *args, **kwargs):
 @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
 def configurationRoom(request, *args, **kwargs):
-    if request.method == "POST":
-        new_room = json.loads(request.body)
+    try:
+        if request.method == "POST":
+            new_room = json.loads(request.body)
 
-        print(f"new room data {new_room}")
-        print(">???????????????????,,,,,,,,")
-        if Room.objects.filter(room_id=new_room["room_id"]).count() > 0:
-            return Response({"Response": "This room already existed!"}, status=status.HTTP_400_BAD_REQUEST)
+            print(f"new room data {new_room}")
+            print(">???????????????????,,,,,,,,")
+            if Room.objects.filter(room_id=new_room["room_id"]).count() > 0:
+                return Response({"Response": "This room already existed!"}, status=status.HTTP_400_BAD_REQUEST)
 
-        new_data_serializer = RoomSerializer(data=new_room)
-        if new_data_serializer.is_valid():
-            new_data_serializer.save()
-            print("Successfully save new room to database!")
-            return Response({"Response": "Successfully create new room!"}, status=status.HTTP_200_OK)
-        else:
-            print("Failed to save new room to database!")
-            return Response({"Response": "Failed to create new room!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    elif request.method == "DELETE":
-        id = json.loads(request.body)["id"]
-        record = Room.objects.filter(id=id)[0]
-        print(record)
-        try:
-            record.delete()
-            return Response({"Response": "Successfully delete room!"}, status=status.HTTP_200_OK)
-        except:
-            print("Failed to delete room!")
-            return Response({"Response": "Failed to delete room!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    elif request.method == "PUT":
-        new_setting = json.loads(request.body)
-        record = Room.objects.filter(id=new_setting["id"])[0]
-        record.construction_name = new_setting["construction_name"]
-        record.x_length = new_setting["x_length"]
-        record.y_length = new_setting["y_length"]
-        record.information = new_setting["information"]
-        try:
-            record.save()
-        except:
-            return Response({"Response": "Can not update new room data!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response({"Response": "Successfully update new room data"}, status=status.HTTP_200_OK)
+            new_data_serializer = RoomSerializer(data=new_room)
+            if new_data_serializer.is_valid():
+                new_data_serializer.save()
+                print("Successfully save new room to database!")
+                return Response({"Response": "Successfully create new room!"}, status=status.HTTP_200_OK)
+            else:
+                print("Failed to save new room to database!")
+                return Response({"Response": "Failed to create new room!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        elif request.method == "DELETE":
+            id = json.loads(request.body)["id"]
+            record = Room.objects.filter(id=id)[0]
+            print(record)
+            try:
+                record.delete()
+                return Response({"Response": "Successfully delete room!"}, status=status.HTTP_200_OK)
+            except:
+                print("Failed to delete room!")
+                return Response({"Response": "Failed to delete room!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        elif request.method == "PUT":
+            new_setting = json.loads(request.body)
+            record = Room.objects.filter(id=new_setting["id"])[0]
+            record.construction_name = new_setting["construction_name"]
+            record.x_length = new_setting["x_length"]
+            record.y_length = new_setting["y_length"]
+            record.information = new_setting["information"]
+            try:
+                record.save()
+            except:
+                return Response({"Response": "Can not update new room data!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"Response": "Successfully update new room data"}, status=status.HTTP_200_OK)
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
 ##
 # @brief: This view is for creating new room node, deleting node record or configuring record
@@ -755,44 +789,48 @@ def configurationRoom(request, *args, **kwargs):
 @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
 def configurationNode(request, *args, **kwargs):
-    if request.method == "GET":
-        room_id = int(request.GET.get("room_id"))
-        print(room_id)
-        data = Registration.objects.filter(room_id=room_id)
-        data_serializer = RegistrationSerializer(data, many=True) #!< have to add many=True
-        return Response(data_serializer.data, status=status.HTTP_200_OK)
-    if request.method == "POST":
-        new_data = json.loads(request.body)
-        new_data_serializer = RegistrationSerializer(data=new_data)
-        if new_data_serializer.is_valid():
-            new_data_serializer.save()
-            return Response({"Response": "Successfully save new node record!"}, status=status.HTTP_200_OK)
-        else:
-            return Response({"Response": "Unsuccessfully save new node record!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    if request.method == "DELETE":
-        id = json.loads(request.body)["id"]
-        print(id)
-        record = Registration.objects.filter(id=id)[0]
-        print(record)
-        try:
-            record.delete()
-            return Response({"Response": "Successfully delete node!"}, status=status.HTTP_200_OK)
-        except:
-            return Response({"Response": "Unsuccessfully delete node!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    if request.method == "PUT":
-        new_node_data = json.loads(request.body)
-        print(new_node_data)
-        record = Registration.objects.filter(id=new_node_data["id"])[0]
-        record.node_id = new_node_data["node_id"]   #!< each column in a record is like a property of calss object, record is not like dictionary
-        record.x_axis = new_node_data["x_axis"]
-        record.y_axis = new_node_data["y_axis"]
-        record.function = new_node_data["function"]
+    try:
+        if request.method == "GET":
+            room_id = int(request.GET.get("room_id"))
+            print(room_id)
+            data = Registration.objects.filter(room_id=room_id)
+            data_serializer = RegistrationSerializer(data, many=True) #!< have to add many=True
+            return Response(data_serializer.data, status=status.HTTP_200_OK)
+        if request.method == "POST":
+            new_data = json.loads(request.body)
+            new_data_serializer = RegistrationSerializer(data=new_data)
+            if new_data_serializer.is_valid():
+                new_data_serializer.save()
+                return Response({"Response": "Successfully save new node record!"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"Response": "Unsuccessfully save new node record!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if request.method == "DELETE":
+            id = json.loads(request.body)["id"]
+            print(id)
+            record = Registration.objects.filter(id=id)[0]
+            print(record)
+            try:
+                record.delete()
+                return Response({"Response": "Successfully delete node!"}, status=status.HTTP_200_OK)
+            except:
+                return Response({"Response": "Unsuccessfully delete node!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if request.method == "PUT":
+            new_node_data = json.loads(request.body)
+            print(new_node_data)
+            record = Registration.objects.filter(id=new_node_data["id"])[0]
+            record.node_id = new_node_data["node_id"]   #!< each column in a record is like a property of calss object, record is not like dictionary
+            record.x_axis = new_node_data["x_axis"]
+            record.y_axis = new_node_data["y_axis"]
+            record.function = new_node_data["function"]
 
-        try:
-            record.save()
-            return Response({"Response": "Successfully update node!"}, status=status.HTTP_200_OK)
-        except:
-            return Response({"Response": "Unsuccessfully update node!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)       
+            try:
+                record.save()
+                return Response({"Response": "Successfully update node!"}, status=status.HTTP_200_OK)
+            except:
+                return Response({"Response": "Unsuccessfully update node!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+    except:
+        return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
