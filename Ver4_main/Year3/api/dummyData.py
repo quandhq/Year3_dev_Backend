@@ -58,14 +58,14 @@ while True:
     "status": 1, 
     "info": { 
         "room_id": 1, 
-        "node_id": 1, 
+        "node_id": random.randint(1,7), 
         "co2": 400, 
         "dust": random.randint(0,50) + round(random.random(),2),
-        "temp": 60.52, 
-        "hum": 29.32,
+        "temp": random.randint(20,35) + round(random.random(),2), 
+        "hum": random.randint(50,80) + round(random.random(),2),
         "time": int((datetime.datetime.now()).timestamp()) + (7*60*60), 
     } 
     } 
     client.publish(topic, json.dumps(data1))
     print("Done sending message")
-    time.sleep(30)
+    time.sleep(5)

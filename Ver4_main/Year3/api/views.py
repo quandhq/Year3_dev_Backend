@@ -53,8 +53,8 @@ print("Setting views.py")
 #              "dust":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]}
 ###############################################################
 @api_view(["POST", "GET"])
-# @authentication_classes([jwtauthentication.JWTAuthentication])
-# @permission_classes([permissions.IsAuthenticated])
+@authentication_classes([jwtauthentication.JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def getSensorSecondlyData(request , *args, **kwargs):    
     room_id = int(request.GET.get("room_id"))   #!< the query parameter is in string form
     filter = int(request.GET.get("filter"))
@@ -195,13 +195,18 @@ from .djangoClient import client as setpoint_client
 #       {"Result": "Successful send setpoint"}
 ###############################################################
 @api_view(["POST"])
+@authentication_classes([jwtauthentication.JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def send_setpoint(request, *arg, **kwargs):
-   monitor_data = json.loads(request.body)
-   print(monitor_data)
-   # print(request.data)
-   insert_to_table_ControlSetpoint(monitor_data)
-   send_setpoint_to_mqtt(setpoint_client, monitor_data)
-   return Response({"Result": "Successful send setpoint"}, status=status.HTTP_200_OK)      
+    monitor_data = json.loads(request.body)
+    print(monitor_data)
+    # print(request.data)
+    try:
+        insert_to_table_ControlSetpoint(monitor_data)
+        send_setpoint_to_mqtt(setpoint_client, monitor_data)
+        return Response({"Result": "Successfully send setpoint!"}, status=status.HTTP_200_OK)
+    except:
+        return Response({"Result": "Unsuccessfully send setpoint!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
 
 
 ###############################################################
@@ -224,6 +229,8 @@ def send_setpoint(request, *arg, **kwargs):
 ###############################################################
 from .djangoClient import send_timer_to_gateway, client
 @api_view(["POST"])
+@authentication_classes([jwtauthentication.JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def setTimerActuator(request, *args, **kwargs):
     room_id = request.GET.get("room_id")
     timer = json.loads(request.body)
@@ -267,7 +274,9 @@ def setTimerActuator(request, *args, **kwargs):
 #           "resolutionY":10}
 ###############################################################
 from .kriging import Kriging
-@api_view(["POST","GET"])           
+@api_view(["POST","GET"])     
+@authentication_classes([jwtauthentication.JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])      
 def kriging(request, *args, **kwargs):
     room_id = request.GET.get("room_id")
     default_X = []          #default axis x of id 3,4,5,6
@@ -330,6 +339,8 @@ def kriging(request, *args, **kwargs):
 ###############################################################
 from .processDataChart import getOptionDayData, getOptionMonthData, getOptionYearData
 @api_view(["POST", "GET"])
+@authentication_classes([jwtauthentication.JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def historyChart(request, *args, **kwargs):
 	if("option" in request.GET):
 		option = request.GET.get("option")  #!< query parameter inside an URL is a string not a integer
@@ -406,6 +417,8 @@ def historyChart(request, *args, **kwargs):
 # @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 # @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
 @api_view(["GET"])
+@authentication_classes([jwtauthentication.JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def getRoomData(request, *args, **kwargs):
 	Room_all_data = Room.objects.all()  #!< get all records in Room table
 	RoomSerializer_instance = RoomSerializer(Room_all_data, many=True)   #!< HAVE TO ADD "many=True"
@@ -450,6 +463,8 @@ def getRoomData(request, *args, **kwargs):
 # @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 # @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
 @api_view(["GET"])
+@authentication_classes([jwtauthentication.JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def getRoomInformationTag(request, *args, **kwargs):
     room_id = request.GET["room_id"]
     print(room_id)
@@ -522,6 +537,8 @@ def getRoomInformationTag(request, *args, **kwargs):
 #           "daily": ...,
 #       }
 @api_view(["GET"])
+@authentication_classes([jwtauthentication.JWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def AQIdustpm2_5(request, *args, **kwargs):
     room_id = int(request.GET.get("room_id"))
     pm2_5_table = [
