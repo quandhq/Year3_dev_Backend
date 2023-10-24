@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 import os
 import datetime
-import dj_database_url
 
 DEBUG_MODE = True
 
