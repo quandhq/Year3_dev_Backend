@@ -20,7 +20,7 @@ import psycopg2
 import multiprocessing
 import datetime
 import calendar
-from api.models import Room, Registration, RawSensorMonitor
+from api.models import Room, Registration, RawSensorMonitor, RawActuatorMonitor
 from api.serializers import RoomSerializer, RegistrationSerializer
 from api.serializers import RawSensorMonitorSerializer ,RawActuatorMonitorSerializer, SetTimerHistorySerializer
 import pandas as pd
@@ -884,6 +884,79 @@ def signUp(request, *args, **kwargs):
             return Response({"Response": "Unsuccessfully create user!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
     else:
         return Response({"Response": "Request method not allowed!"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+
+
+##
+# @brief: This view is for fetching the latest data status of the actuator to see if it is on or off
+#
+# @params: 
+#       urls: "api/actuator_status"
+
+@api_view(["GET"])
+@authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
+@permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
+def getActuatorStatus(request, *args, **kwargs):
+    room_id = request.GET.get("room_id")
+    print(room_id)
+    if Registration.objects.filter(room_id=room_id, function="actuator").count() == 0:
+        return Response({"Response": "No actutor node data"}, status=status.HTTP_204_NO_CONTENT)
+    all_actuator_node_id_in_this_room = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="actuator"), many=True).data
+    actuator_id = all_actuator_node_id_in_this_room[0]["node_id"]
+    if RawActuatorMonitor.objects.filter(node_id=actuator_id).count() == 0:
+        print("No actuator status data")
+        return Response({"Response": "No actutor status data"}, status=status.HTTP_204_NO_CONTENT)
+    all_actuator_data_in_this_room = RawActuatorMonitorSerializer(RawActuatorMonitor.objects.filter(node_id=actuator_id).order_by("-time"), many=True).data
+    return Response({"speed": all_actuator_data_in_this_room[0]["speed"]}, status=status.HTTP_200_OK) 
+
+
+##
+# @brief: This view is for frontend to send turn on or off command to actuator
+#
+# @params: 
+#       urls: "api/actuator_command"
+# @return:
+#  
+#      if there is none:
+#       []
+from .djangoClient import send_actuator_command_to_gateway, client
+@api_view(["POST"])
+@authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
+@permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
+def setActuator(request, *args, **kwargs):
+    try:
+        command = json.loads(request.body)["command"]
+        room_id = json.loads(request.body)["room_id"]
+        print('______________________________')
+        print(command)
+        print(room_id)
+        print("++++++++++++++++++++++++++++++++++++++")
+        result = send_actuator_command_to_gateway(client, {"command": command})
+        new_data = None
+        if int(command) == 0:
+            new_data = {"room_id": room_id, 
+                            "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
+                            "node_id": 20,
+                            "speed": 0,
+                            "state": int(command),
+                            }
+        else:
+            new_data = {"room_id": room_id, 
+                            "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
+                            "node_id": 20,
+                            "speed": 59,
+                            "state": int(command),
+                            }
+        new_data_serializer = RawActuatorMonitorSerializer(data=new_data)
+        if new_data_serializer.is_valid():
+            new_data_serializer.save()
+        return Response({"Response": 1}, status=status.HTTP_200_OK)    
+    except:
+        return Response({"Response": 0}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+    
+
+
+
 
 #DELETE superuser
 # > python manage.py shell
@@ -896,6 +969,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 class CustomTokeObtainPairview(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+    
 
 
 

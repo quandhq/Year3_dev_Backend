@@ -19,11 +19,12 @@ backend_topic_dictionary = {"get_sensor_data": "farm/monitor/sensor",
                         "get_actuator_data": "farm/monitor/actuator",
                         "get_setpoint": "farm/control",
                         "room_sync_gateway_backend": "farm/sync_room",
+                        "test": "farm/test",
                         }
 
 def insert_to_DB(topic,
                         data,
-                        __database='smart_building', 
+                        __database='smartfarm', 
                         __user='year3', 
                         __password='year3',
                         # __database='smartfarm', 
@@ -31,6 +32,7 @@ def insert_to_DB(topic,
                         # __password='year3', 
                         __host='localhost', 
                         __port='5432') -> None:
+    
     conn = psycopg2.connect(
             database = __database,
             user = __user,
@@ -74,6 +76,32 @@ def insert_to_DB(topic,
         record = (data["info"]["room_id"], data["info"]["node_id"], data['info']['speed'], data['info']['state'], data['info']['time'])
         cursor.execute(query, record)
         print("Successfully insert ACTUATORRR to PostgreSQL")
+        print(f"Date_time: {datetime.fromtimestamp(data['info']['time'] - 7*60*60)}")
+        cursor.close()
+        conn.close()
+    elif topic == backend_topic_dictionary["test"]:
+        query = f'''INSERT INTO api_rawsensormonitor (room_id, node_id, co2, temp, hum, light, 
+                    dust, sound, red, green, blue, tvoc, motion, time) 
+                  VALUES (%s, %s, %s, %s ,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'''
+        parameter_key_list = ["co2", "temp", "hum", "light", 
+                         "dust", "sound", "red", "green", 
+                         "blue", "tvoc", "motion", "time"]
+        record = (data["info"]["room_id"], data["info"]["node_id"])
+        for i in parameter_key_list:
+            if i not in data["info"]:
+                record = record + (-1,)
+            else:
+                record = record + (data["info"][i], )   #!< create a tupble of one element "data["info"][i]" and concatenate it to record
+        print(record)    
+        
+        # record = (data["info"]["room_id"], 
+        #           data["info"]["node_id"], 
+        #           data['info']['co2'], 
+        #           data['info']['temp'], 
+        #           data['info']['hum'], 
+        #           data['info']['time'])
+        cursor.execute(query, record)
+        print("Successfully insert SENSORRR to PostgreSQL")
         print(f"Date_time: {datetime.fromtimestamp(data['info']['time'] - 7*60*60)}")
         cursor.close()
         conn.close()
@@ -196,7 +224,7 @@ def run(topic):
             try:
                 temp = client.msg_arrive()
                 if temp != None:
-                    print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
+                    print(f"Received `{temp}` from topic `{topic}`")
                     msg = json.loads(temp)
                     if msg["operator"] == "room_sync":
                         insert_to_DB(topic,
@@ -228,8 +256,9 @@ def run(topic):
             try:
                 temp = client.msg_arrive()
                 if temp != None:
-                    print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
+                    print(f"RReceived `{temp}` from topic `{topic}`")
                     msg = json.loads(temp)
+                    
                     insert_to_DB(topic,
                                 msg,
                                 # 'smartfarm', 
@@ -249,6 +278,8 @@ if __name__ == "__main__":
     process_list.append(multiprocessing.Process(target=run, args=(backend_topic_dictionary["room_sync_gateway_backend"],))) #!< must have ',' in the finishing of set args
     process_list.append(multiprocessing.Process(target=run, args=(backend_topic_dictionary["get_sensor_data"],)))          #!< must have ',' in the finishing of set args
     process_list.append(multiprocessing.Process(target=run, args=(backend_topic_dictionary["get_actuator_data"],)))        #!< must have ',' in the finishing of set args
+    process_list.append(multiprocessing.Process(target=run, args=(backend_topic_dictionary["test"],)))        #!< must have ',' in the finishing of set args
+
     for i in process_list:
         i.start()
     for i in process_list:
