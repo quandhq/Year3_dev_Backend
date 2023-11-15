@@ -900,12 +900,12 @@ def getActuatorStatus(request, *args, **kwargs):
     room_id = request.GET.get("room_id")
     print(room_id)
     if Registration.objects.filter(room_id=room_id, function="actuator").count() == 0:
-        return Response({"Response": "No actutor node data"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"Response": "No actutor node data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     all_actuator_node_id_in_this_room = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="actuator"), many=True).data
     actuator_id = all_actuator_node_id_in_this_room[0]["node_id"]
     if RawActuatorMonitor.objects.filter(node_id=actuator_id).count() == 0:
         print("No actuator status data")
-        return Response({"Response": "No actutor status data"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"Response": "No actutor status data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     all_actuator_data_in_this_room = RawActuatorMonitorSerializer(RawActuatorMonitor.objects.filter(node_id=actuator_id).order_by("-time"), many=True).data
     return Response({"speed": all_actuator_data_in_this_room[0]["speed"]}, status=status.HTTP_200_OK) 
 
