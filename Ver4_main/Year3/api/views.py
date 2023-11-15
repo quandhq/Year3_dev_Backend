@@ -906,7 +906,7 @@ def getActuatorStatus(request, *args, **kwargs):
     if RawActuatorMonitor.objects.filter(node_id=actuator_id).count() == 0:
         print("No actuator status data")
         return Response({"Response": "No actutor status data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    all_actuator_data_in_this_room = RawActuatorMonitorSerializer(RawActuatorMonitor.objects.filter(node_id=actuator_id).order_by("-time"), many=True).data
+    all_actuator_data_in_this_room = RawActuatorMonitorSerializer(RawActuatorMonitor.objects.filter(room_id=room_id, node_id=actuator_id).order_by("-time"), many=True).data
     return Response({"speed": all_actuator_data_in_this_room[0]["speed"]}, status=status.HTTP_200_OK) 
 
 
