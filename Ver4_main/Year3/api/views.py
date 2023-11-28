@@ -559,8 +559,8 @@ def getRoomInformationTag(request, *args, **kwargs):
 #           "daily": ...,
 #       }
 @api_view(["GET"])
-@authentication_classes([jwtauthentication.JWTAuthentication])
-@permission_classes([permissions.IsAuthenticated])
+# @authentication_classes([jwtauthentication.JWTAuthentication])
+# @permission_classes([permissions.IsAuthenticated])
 def AQIdustpm2_5(request, *args, **kwargs):
     try:
         room_id = int(request.GET.get("room_id"))
@@ -768,7 +768,8 @@ def configurationRoom(request, *args, **kwargs):
 #                 "node_id": ...,
 #                 "x_axis": ...,
 #                 "y_axis": ...,
-#                 "function": "sensor"/"actuator"
+#                 "function": "sensor"/"fan"/"air"
+#                 "mac": ....,
 #             } 
 #       - method = "DELETE":
 #               body (data in JSON format): {"id": ...}
@@ -778,13 +779,19 @@ def configurationRoom(request, *args, **kwargs):
 #                 "node_id": ...,
 #                 "x_axis": ...,
 #                 "y_axis": ...,
-#                 "function": "sensor"/"actuator"
+#                 "function": "sensor"/"actuator"/"air"
+#                 "mac": ....,
 #             } 
 # @return:
 #       - method = "GET":
 #               all sensor data in json format filtered by room_id given
 #       - all other method:
 #               data in JSON format {"Response": ...} + status 
+from .djangoClient import sendNodeConfigToGateway, client
+from threading import Thread
+import asyncio
+from .models import NodeConfigBuffer
+from .serializers import NodeConfigBufferSerializer
 @api_view(["GET", "POST", "DELETE", "PUT"])
 @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
@@ -798,9 +805,23 @@ def configurationNode(request, *args, **kwargs):
             return Response(data_serializer.data, status=status.HTTP_200_OK)
         if request.method == "POST":
             new_data = json.loads(request.body)
+            new_data_for_buffer = {
+                "action": 1,
+                "mac": new_data["mac"],
+                "room_id": new_data["room_id"],
+                "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
+            }
             new_data_serializer = RegistrationSerializer(data=new_data)
+            new_data_buffer_serialier = NodeConfigBufferSerializer(data=new_data_for_buffer)
             if new_data_serializer.is_valid():
                 new_data_serializer.save()
+                if new_data_buffer_serialier.is_valid():
+                    new_data_buffer_serialier.save()
+                    print("OK")
+                # sendNodeConfigToGateway(client, new_data, "add")
+                #this thread will run side by side with django main thread 
+                t = Thread(target=sendNodeConfigToGateway, args=(client, new_data, "data"))
+                t.start()
                 return Response({"Response": "Successfully save new node record!"}, status=status.HTTP_200_OK)
             else:
                 return Response({"Response": "Unsuccessfully save new node record!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -964,7 +985,10 @@ def setActuator(request, *args, **kwargs):
 # $ User.objects.get(username="name", is_superuser=True).delete()
 
 #overider TokenObtainPariView
-
+    """_summary_
+    This is for seting up django to alow us take the status of user out of database and wrap it up into reponse return by token API.
+    So the json data that returned by token API will contain access token, refresh token and status of user (is supper user or not).
+    """
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
 class CustomTokeObtainPairview(TokenObtainPairView):

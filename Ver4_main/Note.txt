@@ -1,1 +1,2 @@
 #sudo -u postgres psql //connect to postgres on ubuntu
+#should use python version <= 3.10

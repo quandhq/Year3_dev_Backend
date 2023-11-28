@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from api.models import Room, Registration, RawSensorMonitor, SensorMonitor
-from api.models import RawActuatorMonitor, ActuatorMonitor, ControlSetpoint, SetTimerHistory
+from api.models import RawActuatorMonitor, ActuatorMonitor, ControlSetpoint, SetTimerHistory, NodeConfigBuffer
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -31,6 +31,11 @@ class RawActuatorMonitorSerializer(serializers.ModelSerializer):
 class SetTimerHistorySerializer(serializers.ModelSerializer):
     class Meta:
        model = SetTimerHistory
+       fields = "__all__"
+
+class NodeConfigBufferSerializer(serializers.ModelSerializer):
+    class Meta:
+       model = NodeConfigBuffer
        fields = "__all__"
 
 ##
