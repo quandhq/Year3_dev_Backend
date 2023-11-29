@@ -34,7 +34,7 @@ class Registration(models.Model):
     x_axis = models.IntegerField(null=False, db_column="x_axis",)
     y_axis = models.IntegerField(null=False, db_column="y_axis",)
     function = models.TextField(null=False, db_column="function",)
-    mac = models.TextField(null=False, db_column="mac",)
+    mac = models.TextField(null=False, db_column="mac", unique=True,)
 
 
 ##
@@ -154,7 +154,7 @@ class SetTimerHistory(models.Model):
 class NodeConfigBuffer(models.Model):
     id = models.BigAutoField(primary_key=True, db_column="id")
     action = models.IntegerField(null=False, db_column="action")
-    mac = models.TextField(null=False, db_column="mac")
+    mac = models.TextField(null=False, db_column="mac", unique=True)
     room_id = models.IntegerField(null=False, db_column="room_id")
     time = models.BigIntegerField(null=False, db_column="time")
     

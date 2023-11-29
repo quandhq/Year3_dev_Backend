@@ -19,7 +19,7 @@ class Client(mqtt.Client):
             print(f"Successfully connect to {self.__topic}")
             for i in self._topic_arry:
                 self.subscribe(i)
-                print(f"Successfully connect to {i}")
+                print(f"Successfully subscribe to {i}")
         else:
             print("Unsuccessfully connect to mqtt")
     
@@ -45,7 +45,7 @@ class Client(mqtt.Client):
     def on_subscribe(self, client, userdata, mid, granted_qos):
         """Publish a message on a topic"""
         # self.__logger.info("Subscribed successfully")
-        print("this is on_subscribe function in class CLIENT")
+        # print("this is on_subscribe function in class CLIENT")
 
     def msg_arrive(self):
         if self.__check == True:

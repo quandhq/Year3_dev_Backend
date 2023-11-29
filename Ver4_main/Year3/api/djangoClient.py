@@ -15,7 +15,7 @@ backend_topic_dictionary = {"get_sensor_data": "farm/monitor/sensor",
                         "set_timer": "farm/set_timer",
                         "node_sync_backend_gateway": "farm/sync_node"}
 
-client = Client(mqtt_topic,[backend_topic_dictionary["set_timer"]])
+client = Client(mqtt_topic,[backend_topic_dictionary["set_timer"], backend_topic_dictionary["node_sync_backend_gateway"]])
 mqtt_broker = broker     
 mqtt_port = 1883
 client.connect(mqtt_broker, int(mqtt_port), 60)
@@ -29,58 +29,114 @@ from api.serializers import RegistrationSerializer, NodeConfigBufferSerializer
 def sendNodeConfigToGateway(client: Client, data: dict, command):  
     topic = backend_topic_dictionary["node_sync_backend_gateway"]
     result = 0
-    while NodeConfigBuffer.objects.count() != 0:
+    action = 1 if command == "add" else 0
+    while NodeConfigBuffer.objects.filter(action=action).count() != 0:
         """
         If there is still data in buffer, get the first one out and send message with it's data to gateway
-        if not successull, delete the latest data but in database registration and also delete the one in buffer
-        if successfull, update the one in registration with new node_id and delete the one in buffer.
+        If not successull, delete the latest data but in database registration and also delete the one in buffer
+        If successfull, update the one in registration with new node_id and delete the one in buffer.
         """
-        latest_data_waiting_in_buffer = NodeConfigBuffer.objects.filter(action=1).order_by("-time")[0] #!< this is for detele if needed
-        print(latest_data_waiting_in_buffer["time"])
-        latest_data_waiting_in_buffer_data = NodeConfigBufferSerializer(latest_data_waiting_in_buffer, 
-                                                                   many=True).data[0]
+        all_latest_data_waiting_in_buffer = NodeConfigBuffer.objects.filter(action=action).order_by("-id") #!< this is for detele if needed
+        latest_data_waiting_in_buffer = all_latest_data_waiting_in_buffer[0]
+        print("Node in buffer")
+        print(latest_data_waiting_in_buffer.time)
+        latest_data_waiting_in_buffer_data = (NodeConfigBufferSerializer(all_latest_data_waiting_in_buffer, 
+                                                                   many=True).data)[0]
         #this is for delete if needed, or update node id of this record if needed
         latest_data_waiting_in_registration = Registration.objects.filter(room_id=latest_data_waiting_in_buffer_data["room_id"],
                                                                           mac=latest_data_waiting_in_buffer_data["mac"])[0]
-        print(latest_data_waiting_in_registration["time"])
+        print("Node in registration")
+        print(latest_data_waiting_in_registration.id)
         
-        
-        new_data = { 
-                    "operator": "server_add", 
-                    "info": 
-                    { 
-                        "room_id": latest_data_waiting_in_buffer_data["room_id"],
-                        "node_function": latest_data_waiting_in_buffer_data["function"],     
-                        "mac_address": latest_data_waiting_in_buffer_data["mac"],    
-                        "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
-                    } 
-                }
+        new_data = None
+        if command == "add":
+            new_data = { 
+                        "operator": "server_add", 
+                        "info": 
+                        { 
+                            "room_id": str(latest_data_waiting_in_registration.room_id.room_id),
+                            "node_function": str(latest_data_waiting_in_registration.function),     
+                            "mac_address": str(latest_data_waiting_in_registration.mac),    
+                            "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
+                        } 
+                    }
+        else:
+            new_data = { 
+                        "operator": "server_delete", 
+                        "info": 
+                        { 
+                            "room_id": str(latest_data_waiting_in_registration.room_id.room_id),
+                            "node_function": str(latest_data_waiting_in_registration.function),     
+                            "mac_address": str(latest_data_waiting_in_registration.mac),    
+                            "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
+                        } 
+                    }
         
         msg = json.dumps(new_data)
         result = client.publish(topic, msg)
+        client.subscribe("farm/sync_node_ack")     #subscibe to get ack msg back from gateway!
         status = result[0]
         if status == 0:
-            print("Successfully send timer turn on air-conditioning message!!!")
-        # print(f"Succesfully send '{msg}' to topic '{topic}'")
+            print(f"Successfully send node config message!!!")
+            print(f"Succesfully send '{msg}' to topic '{topic}'")
             pass
         else:
             raise Exception("Can't publish data to mqtt..........................!")
+        
+        # client.unsubscribe("farm/sync_node")
 
+        
         
         curent_time = int((datetime.datetime.now()).timestamp())
         while(1):
-            #if 10 seconds have passed, break out of loop and delete data in database
+            client.subscribe("farm/sync_node_ack")     #subscibe to get ack msg back from gateway!
+            #if 10 seconds have passed, 
+            #if action == "add", delete data in both database and buffer and get next one in buffer
+            #if action == "delete", keep the data in database and delete the one in buffer
             if int((datetime.datetime.now()).timestamp()) - curent_time > 10: 
-                
+                if action == 1:
+                    latest_data_waiting_in_buffer.delete()
+                    print(f"Gateway does not response, finish deleting add data {latest_data_waiting_in_registration.mac} in registration!")
+                    latest_data_waiting_in_registration.delete()
+                if action == 0:
+                    print(f"Gateway does not response, finish deleting delete data {latest_data_waiting_in_buffer} in buffer!")
+                    latest_data_waiting_in_buffer.delete()
                 break
             temp = client.msg_arrive()
             if temp != None:
-                        print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
-                        msg = json.loads(temp)
-                        if msg["operator"] == "set_timer_ack":
-                            if msg["info"]["status"] == 1:
-                                result = 1
-                                break
+                # client.unsubscribe("farm/sync_node_ack")
+                print(f"RRRRRRRRRRRRRRRReceived `{temp}`")
+                msg = json.loads(temp)
+                if action == 1:
+                    if msg["operator"] == "server_add_ack":
+                        if msg["status"] == 1:
+                            latest_data_waiting_in_buffer.delete()
+                            latest_data_waiting_in_registration.node_id = msg["info"]["node_id"]
+                            latest_data_waiting_in_registration.save()
+                            print("Gateway accepted adding!")
+                            print(f"Finish update new node_id {latest_data_waiting_in_registration.node_id}")
+                            result = 1
+                            break
+                        else:
+                            print("Gateway denied adding!")
+                            latest_data_waiting_in_buffer.delete()
+                            print(f"Gateway denied, finish deleting add data {latest_data_waiting_in_registration.mac} in registration!")
+                            latest_data_waiting_in_registration.delete()
+                            result = 0
+                            break
+                if action == 0:
+                    if msg["operator"] == "server_delete_ack":
+                        if msg["status"] == 1:
+                            print("Gateway accepted deleting!")
+                            latest_data_waiting_in_buffer.delete()
+                            latest_data_waiting_in_registration.delete()
+                            result = 1
+                            break
+                        else:
+                            print(f"Gateway denied deleting, finish deleting delete data {latest_data_waiting_in_buffer} in buffer!")
+                            latest_data_waiting_in_buffer.delete()
+                            result = 0
+                            break
     return result
     
 
@@ -126,12 +182,12 @@ def send_timer_to_gateway(client: Client, data: dict):
             break
         temp = client.msg_arrive()
         if temp != None:
-                    print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
-                    msg = json.loads(temp)
-                    if msg["operator"] == "set_timer_ack":
-                        if msg["info"]["status"] == 1:
-                            result = 1
-                            break
+            print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
+            msg = json.loads(temp)
+            if msg["operator"] == "set_timer_ack":
+                if msg["info"]["status"] == 1:
+                    result = 1
+                    break
     return result
 
 def send_actuator_command_to_gateway(client: Client, data: dict):

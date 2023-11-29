@@ -817,22 +817,38 @@ def configurationNode(request, *args, **kwargs):
                 new_data_serializer.save()
                 if new_data_buffer_serialier.is_valid():
                     new_data_buffer_serialier.save()
-                    print("OK")
+                    print("OK set data post node to buffer")
                 # sendNodeConfigToGateway(client, new_data, "add")
                 #this thread will run side by side with django main thread 
-                t = Thread(target=sendNodeConfigToGateway, args=(client, new_data, "data"))
+                t = Thread(target=sendNodeConfigToGateway, args=(client, new_data, "add"))
                 t.start()
                 return Response({"Response": "Successfully save new node record!"}, status=status.HTTP_200_OK)
             else:
                 return Response({"Response": "Unsuccessfully save new node record!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if request.method == "DELETE":
-            id = json.loads(request.body)["id"]
-            print(id)
-            record = Registration.objects.filter(id=id)[0]
-            print(record)
             try:
-                record.delete()
-                return Response({"Response": "Successfully delete node!"}, status=status.HTTP_200_OK)
+                new_data = json.loads(request.body)
+                id = new_data["id"]
+                print(id)
+                record = Registration.objects.filter(id=id)[0]
+                print(record)
+                new_data_for_buffer = {
+                    "action": 0,
+                    "mac": str(record.mac),
+                    "room_id": str(record.room_id.room_id),         #record.room_id will result in "Room Object"
+                    "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
+                }
+                print(new_data_for_buffer)
+                print("OK")
+                new_data_buffer_serialier = NodeConfigBufferSerializer(data=new_data_for_buffer)
+                if new_data_buffer_serialier.is_valid():
+                    new_data_buffer_serialier.save()
+                    print("OK set data delete node to buffer")
+                    t = Thread(target=sendNodeConfigToGateway, args=(client, new_data, "delete"))
+                    t.start()
+                    return Response({"Response": "Successfully delete node!"}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"Response": "Unsuccessfully save new node record!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
             except:
                 return Response({"Response": "Unsuccessfully delete node!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if request.method == "PUT":
