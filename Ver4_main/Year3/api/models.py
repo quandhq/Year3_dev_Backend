@@ -35,6 +35,9 @@ class Registration(models.Model):
     y_axis = models.IntegerField(null=False, db_column="y_axis",)
     function = models.TextField(null=False, db_column="function",)
     mac = models.TextField(null=False, db_column="mac", unique=True,)
+    status = models.TextField(null=False, db_column="status",)
+    time = models.BigIntegerField(null=False, db_column="time",)
+
 
 
 ##

@@ -443,13 +443,13 @@ def getRoomData(request, *args, **kwargs):
         for element in RoomSerializer_instance.data:
             if element["construction_name"] == "farm":
                 #!v get all node data that is in this room
-                node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"])
+                node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"], status="sync")
                 #!v create one more field "node_array" in this element
                 element["node_array"] = RegistrationSerializer(node_data_in_room_element, many=True).data #!< HAVE TO ADD "many=True"
                 response_dict["farm"].append(element)
             elif element["construction_name"] == "building":
                 #!v get all node data that is in this room
-                node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"])
+                node_data_in_room_element = Registration.objects.filter(room_id=element["room_id"], status="sync")
                 #!v create one more field "node_array" int this element
                 element["node_array"] = RegistrationSerializer(node_data_in_room_element, many=True).data #!< HAVE TO ADD "many=True"
                 response_dict["building"].append(element)
@@ -489,14 +489,14 @@ def getRoomInformationTag(request, *args, **kwargs):
         print(room_id)
         if RawSensorMonitor.objects.count() != 0:
             # 1.Get all node_id s that belong to this room
-            if Registration.objects.filter(room_id=room_id, function="sensor").count() == 0:
+            if Registration.objects.filter(room_id=room_id, function="sensor", status="sync").count() == 0:
                 parameter_key_list = {"co2", "temp", "hum", "light", "dust", "sound", "red", "green", "blue", "tvoc", "motion"}
                 average_data_to_return = {}
                 for i in parameter_key_list:
                     average_data_to_return[i] = -1
                     average_data_to_return["time"] = 0
                 return Response(average_data_to_return, status=status.HTTP_200_OK)
-            all_node_id_of_this_room_id = Registration.objects.filter(room_id=room_id, function="sensor")
+            all_node_id_of_this_room_id = Registration.objects.filter(room_id=room_id, function="sensor", status="sync")
             RegistrationSerializer_instance = RegistrationSerializer(all_node_id_of_this_room_id, many=True)   #!< Have to add many=True
             all_node_id_of_this_room_id_list = [ i["node_id"] for i in RegistrationSerializer_instance.data]
             print(all_node_id_of_this_room_id_list)
@@ -527,8 +527,10 @@ def getRoomInformationTag(request, *args, **kwargs):
                 else:
                     continue
             # 5. Get nodes information
-            sensor_node_information_in_this_room_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="sensor"), many=True).data #!< have to add many=True
-            actuator_node_information_in_this_room_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="actuator"), many=True).data  #!< have to add many=True
+            sensor_node_information_in_this_room_list = RegistrationSerializer(
+                            Registration.objects.filter(room_id=room_id, function="sensor", status="sync"), many=True).data #!< have to add many=True
+            actuator_node_information_in_this_room_list = RegistrationSerializer(
+                            Registration.objects.filter(room_id=room_id, function="actuator", status="sync"), many=True).data  #!< have to add many=True
             average_data_to_return["node_info"] = {"sensor": sensor_node_information_in_this_room_list,
                                                     "actuator": actuator_node_information_in_this_room_list}
             # 6. Get room size 
@@ -578,7 +580,7 @@ def AQIdustpm2_5(request, *args, **kwargs):
         print(ctime)
         #calculate hourly data
         filter_time = ctime - 12*60*60
-        node_sensor_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id),many=True)
+        node_sensor_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, status="sync"),many=True)
         hourly_dust_data = RawSensorMonitorSerializer(RawSensorMonitor.objects.filter(room_id=room_id, time__gt=filter_time, dust__gt=0), many=True).data #!< have to add many=True
         if len(hourly_dust_data) != 0:
             df = pd.DataFrame(hourly_dust_data)
@@ -805,6 +807,8 @@ def configurationNode(request, *args, **kwargs):
             return Response(data_serializer.data, status=status.HTTP_200_OK)
         if request.method == "POST":
             new_data = json.loads(request.body)
+            new_data["time"] = int((datetime.datetime.now()).timestamp()) + 7*60*60
+            new_data["status"] = "sync"
             new_data_for_buffer = {
                 "action": 1,
                 "mac": new_data["mac"],
@@ -831,6 +835,8 @@ def configurationNode(request, *args, **kwargs):
                 id = new_data["id"]
                 print(id)
                 record = Registration.objects.filter(id=id)[0]
+                record.status = "deleted"
+                record.save()
                 print(record)
                 new_data_for_buffer = {
                     "action": 0,

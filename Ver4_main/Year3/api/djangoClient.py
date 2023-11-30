@@ -54,7 +54,7 @@ def sendNodeConfigToGateway(client: Client, data: dict, command):
                         "operator": "server_add", 
                         "info": 
                         { 
-                            "room_id": str(latest_data_waiting_in_registration.room_id.room_id),
+                            "room_id": int(latest_data_waiting_in_registration.room_id.room_id),
                             "node_function": str(latest_data_waiting_in_registration.function),     
                             "mac_address": str(latest_data_waiting_in_registration.mac),    
                             "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
@@ -65,7 +65,7 @@ def sendNodeConfigToGateway(client: Client, data: dict, command):
                         "operator": "server_delete", 
                         "info": 
                         { 
-                            "room_id": str(latest_data_waiting_in_registration.room_id.room_id),
+                            "room_id": int(latest_data_waiting_in_registration.room_id.room_id),
                             "node_function": str(latest_data_waiting_in_registration.function),     
                             "mac_address": str(latest_data_waiting_in_registration.mac),    
                             "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
@@ -109,7 +109,7 @@ def sendNodeConfigToGateway(client: Client, data: dict, command):
                 msg = json.loads(temp)
                 if action == 1:
                     if msg["operator"] == "server_add_ack":
-                        if msg["status"] == 1:
+                        if msg["status"] == 1 or msg["status"] == 2:
                             latest_data_waiting_in_buffer.delete()
                             latest_data_waiting_in_registration.node_id = msg["info"]["node_id"]
                             latest_data_waiting_in_registration.save()
@@ -126,13 +126,16 @@ def sendNodeConfigToGateway(client: Client, data: dict, command):
                             break
                 if action == 0:
                     if msg["operator"] == "server_delete_ack":
-                        if msg["status"] == 1:
+                        if msg["status"] == 1 or msg["status"] == 2:
                             print("Gateway accepted deleting!")
                             latest_data_waiting_in_buffer.delete()
-                            latest_data_waiting_in_registration.delete()
+                            latest_data_waiting_in_registration.status = "deleted"
+                            latest_data_waiting_in_registration.save()
                             result = 1
                             break
                         else:
+                            latest_data_waiting_in_registration.status = "sync"    #turn the status of node to "sync" indicate that node still functions
+                            latest_data_waiting_in_registration.save()
                             print(f"Gateway denied deleting, finish deleting delete data {latest_data_waiting_in_buffer} in buffer!")
                             latest_data_waiting_in_buffer.delete()
                             result = 0
