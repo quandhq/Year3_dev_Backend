@@ -161,5 +161,28 @@ class NodeConfigBuffer(models.Model):
     room_id = models.IntegerField(null=False, db_column="room_id")
     time = models.BigIntegerField(null=False, db_column="time")
     
+    
+class AqiRef(models.Model):
+    id = models.BigAutoField(primary_key=True, db_column="id")
+    aqi = models.IntegerField(null=True, db_column="aqi")
+    pm25 = models.IntegerField(null = True, db_column="pm25") #pm2.5
+    pm10 = models.IntegerField(null = True, db_column="pm10") #pm10
+    o3 = models.IntegerField(null = True, db_column="o3")       
+    no2 = models.IntegerField(null = True, db_column="no2")
+    so2 = models.IntegerField(null = True, db_column="so2")
+    co = models.IntegerField(null = True, db_column="co")
+    t = models.IntegerField(null = True, db_column="t") #temperature
+    p = models.IntegerField(null = True, db_column="p") #pressure
+    h = models.IntegerField(null = True, db_column="h") #humidity
+    w = models.IntegerField(null = True, db_column="w") #wind
+    time = models.BigIntegerField(null = True, db_column="time")    #time
+    dew = models.IntegerField(null = True, db_column="dew")
+    wg = models.IntegerField(null = True, db_column="wg")
+    
+    
+    
+    
+    
+    
 
 

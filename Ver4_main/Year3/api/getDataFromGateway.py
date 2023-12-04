@@ -4,6 +4,7 @@ import json
 import psycopg2
 from datetime import datetime
 import time
+import requests
 
 broker = "27.71.227.1"
 
@@ -170,7 +171,7 @@ def insert_to_DB(topic,
             cursor = conn.cursor(cursor_factory=DictCursor)
             query = f"""SELECT * FROM api_registration WHERE room_id = {data["info"]["room_id"]}"""
             cursor.execute(query)
-            all_nodes_in_room_list:list =cursor.fetchall()
+            all_nodes_in_room_list:list = cursor.fetchall()
             current_node_id_list = [i["node_id"] for i in all_nodes_in_room_list]   #!< get all current ids of nodes
             new_node_data:list = []  #!< this contains all the new nodes whichs will be inserted into database
             for node in data["info"]["node_list"]:  #!< get all the new nodes which is not present in database
@@ -273,12 +274,87 @@ def run(topic):
                 print("!!!!!!Error in getDataFromGateway.py while insert data to database")
                 time.sleep(10)
 
+
+
+def getDataForAqiRef():
+    url = "https://api.waqi.info/feed/here/?token=08f2de731b94a1ff55e871514aa8f145e12ebafe"
+    dict_key = ["aqi", "pm25", "pm10", "o3", "no2", "so2", "co", "t", "p", "h", "w", "time", "dew", "wg"]
+    while 1:
+        try: 
+            is_there_record_to_save = True
+            time.sleep(60)   
+            data = requests.get(url)
+            if data.status_code == 200:
+                data_json = data.json()
+                time_of_data = data_json["data"]["time"]["v"]
+                print(time_of_data)
+                new_data = {}
+                conn = psycopg2.connect(
+                    database = "smartfarm",
+                    user = "year3",
+                    password = "year3",
+                    host = 'localhost',
+                    port = "5432",
+                    )
+
+                conn.autocommit = True
+                cursor = conn.cursor()
+                
+                for i in dict_key:
+                    if i == "time":
+            
+                        query = f"""SELECT * FROM api_aqiref ORDER BY time DESC"""
+                        cursor.execute(query)
+                        all_data_in_aqiref_orderby_time_desc:list =cursor.fetchall()
+            
+                        if len(all_data_in_aqiref_orderby_time_desc) == 0:
+                            print("No data in aqi_ref")
+                            new_data[i] = time_of_data
+                        else:
+                            latest_data_in_database = all_data_in_aqiref_orderby_time_desc[0] #!< tuple
+                            print(latest_data_in_database)
+                            if int(time_of_data) == int(latest_data_in_database[11]):  #!< time is in index 11 of tuple lastest_data_in_database
+                                print("This time've already in database")
+                                is_there_record_to_save = False
+                                break
+                            else:
+                                new_data[i] = time_of_data
+                    elif i == "aqi":
+                        if i in data_json["data"]:
+                            new_data[i] = data_json["data"][i]        
+                        else:
+                            new_data[i] = -1
+                    else:
+                        print(i)
+                        if i in data_json["data"]["iaqi"]:
+                            new_data[i] = data_json["data"]["iaqi"][i]["v"]        
+                        else:
+                            new_data[i] = -1
+                # with self.lock:
+                if is_there_record_to_save == False:
+                    continue
+                query = f'''INSERT INTO api_aqiref (aqi, pm25, pm10, o3, no2, so2, co, t, p, h, w, time, dew, wg) 
+                        VALUES (%s, %s, %s, %s ,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'''
+                record = () #!< empty tuple
+                for i in dict_key:
+                    record = record + (new_data[i], )   #!< create a tupble of one element "data["info"][i]" and concatenate it to record
+                print(record) 
+                cursor.execute(query, record)
+                print("Successfully insert AQI REF to PostgreSQL")
+                print(f"Date_time: {datetime.fromtimestamp(data['info']['time'] - 7*60*60)}")
+                cursor.close()
+                conn.close()                       
+        except:
+            print("Erro while getting data for aqi ref")
+            continue    
+
 if __name__ == "__main__":
     process_list = []
     process_list.append(multiprocessing.Process(target=run, args=(backend_topic_dictionary["room_sync_gateway_backend"],))) #!< must have ',' in the finishing of set args
     process_list.append(multiprocessing.Process(target=run, args=(backend_topic_dictionary["get_sensor_data"],)))          #!< must have ',' in the finishing of set args
     process_list.append(multiprocessing.Process(target=run, args=(backend_topic_dictionary["get_actuator_data"],)))        #!< must have ',' in the finishing of set args
     process_list.append(multiprocessing.Process(target=run, args=(backend_topic_dictionary["test"],)))        #!< must have ',' in the finishing of set args
+    process_list.append(multiprocessing.Process(target=getDataForAqiRef))
 
     for i in process_list:
         i.start()

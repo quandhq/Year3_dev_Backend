@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from api.models import Room, Registration, RawSensorMonitor, SensorMonitor
 from api.models import RawActuatorMonitor, ActuatorMonitor, ControlSetpoint, SetTimerHistory, NodeConfigBuffer
+from api.models import AqiRef
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -37,6 +38,12 @@ class NodeConfigBufferSerializer(serializers.ModelSerializer):
     class Meta:
        model = NodeConfigBuffer
        fields = "__all__"
+
+class AqiRefSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = AqiRef
+      fileds = "__all__"
+
 
 ##
 # @brief Override the TokenObtainPairSerializer
