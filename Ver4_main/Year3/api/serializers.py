@@ -42,7 +42,7 @@ class NodeConfigBufferSerializer(serializers.ModelSerializer):
 class AqiRefSerializer(serializers.ModelSerializer):
    class Meta:
       model = AqiRef
-      fileds = "__all__"
+      fields = "__all__"
 
 
 ##

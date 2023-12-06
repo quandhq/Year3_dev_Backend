@@ -481,8 +481,8 @@ def getRoomData(request, *args, **kwargs):
 # @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
 # @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
 @api_view(["GET"])
-@authentication_classes([jwtauthentication.JWTAuthentication])
-@permission_classes([permissions.IsAuthenticated])
+# @authentication_classes([jwtauthentication.JWTAuthentication])
+# @permission_classes([permissions.IsAuthenticated])
 def getRoomInformationTag(request, *args, **kwargs):
     try:
         room_id = request.GET["room_id"]
@@ -579,7 +579,10 @@ def AQIdustpm2_5(request, *args, **kwargs):
         ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
         print(ctime)
         #calculate hourly data
-        filter_time = ctime - 12*60*60
+        latest_time = int(RawSensorMonitor.objects.order_by("-time")[0].time)
+        print(latest_time)
+        print("____________________________________________________________")
+        filter_time = latest_time - 12*60*60
         node_sensor_list = RegistrationSerializer(Registration.objects.filter(room_id=room_id, status="sync"),many=True)
         hourly_dust_data = RawSensorMonitorSerializer(RawSensorMonitor.objects.filter(room_id=room_id, time__gt=filter_time, dust__gt=0), many=True).data #!< have to add many=True
         if len(hourly_dust_data) != 0:
@@ -636,7 +639,7 @@ def AQIdustpm2_5(request, *args, **kwargs):
                     break
             print(hourly)
                 
-        return Response({"hourly": hourly, "daily": 0}, status=200)
+        return Response({"hourly": hourly, "daily": 0, "time": latest_time}, status=200)
     except:
         return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -998,7 +1001,33 @@ def setActuator(request, *args, **kwargs):
         return Response({"Response": 0}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
     
 
-
+##
+# @brief: This view is for sending AqiRef to Frontend, component AqiRef
+#
+# @params: 
+#       urls: "api/aqi_ref"
+# @return:
+#  
+#      if there is none:
+#       []
+from api.models import AqiRef
+from api.serializers import AqiRefSerializer
+@api_view(["GET"])
+# @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
+# @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
+def getAqiRef(request, *args, **kwargs):
+    try:
+        if AqiRef.objects.count() == 0:
+            return Response({"Response": "No data"}, status=status.HTTP_204_NO_CONTENT)
+        else:
+            latest_data_in_database = AqiRefSerializer(
+                AqiRef.objects.order_by("-time"),
+                many = True                                     #!< have to add many = True
+                                ).data[0]
+            return Response({"Response": latest_data_in_database}, status = status.HTTP_200_OK)
+            
+    except:
+        return Response({"Response": 0}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #DELETE superuser
