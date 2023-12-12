@@ -638,8 +638,10 @@ def AQIdustpm2_5(request, *args, **kwargs):
                     hourly = round((aqihi - aqilo)*(hourly-conclo)/(conchi-conclo) + aqilo)
                     break
             print(hourly)
-                
-        return Response({"hourly": hourly, "daily": 0, "time": latest_time}, status=200)
+            return Response({"hourly": hourly, "daily": 0, "time": latest_time}, status=200)
+        else:
+            return Response({"Response": "No data available!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
     except:
         return Response({"Response": "Error on server!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
