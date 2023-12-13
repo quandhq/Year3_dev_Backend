@@ -282,16 +282,17 @@ def setTimerActuator(request, *args, **kwargs):
 ###############################################################
 from .kriging import Kriging
 @api_view(["POST","GET"])     
-@authentication_classes([jwtauthentication.JWTAuthentication])
-@permission_classes([permissions.IsAuthenticated])      
+# @authentication_classes([jwtauthentication.JWTAuthentication])
+# @permission_classes([permissions.IsAuthenticated])      
 def kriging(request, *args, **kwargs):
     try:
         room_id = request.GET.get("room_id")
         default_X = []          #default axis x of id 3,4,5,6
         default_Y = []     #default axis y of id 3,4,5,6
         default_value = []    #this is default-type value of all known-points
-        all_sensor_node_in_this_room = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="sensor"), 
+        all_sensor_node_in_this_room = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="sensor", status="sync"), 
                                                                 many=True).data #!< have to add many=True
+        print(all_sensor_node_in_this_room)
         room_size = RoomSerializer(Room.objects.filter(room_id=room_id), many=True).data[0] #!< have to add many=True
         for node in all_sensor_node_in_this_room:
             # 1. Get the x axis and y axis of all sensor nodes
