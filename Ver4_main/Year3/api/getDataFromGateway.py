@@ -282,7 +282,7 @@ def getDataForAqiRef():
     while 1:
         try: 
             is_there_record_to_save = True
-            time.sleep(60)   
+            time.sleep(10)   
             data = requests.get(url)
             if data.status_code == 200:
                 data_json = data.json()
