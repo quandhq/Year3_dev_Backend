@@ -303,7 +303,7 @@ def getDataForAqiRef():
                 for i in dict_key:
                     if i == "time":
             
-                        query = f"""SELECT * FROM api_aqiref ORDER BY time DESC"""
+                        query = f"""SELECT time FROM api_aqiref ORDER BY time DESC"""
                         cursor.execute(query)
                         all_data_in_aqiref_orderby_time_desc:list =cursor.fetchall()
             
@@ -313,7 +313,7 @@ def getDataForAqiRef():
                         else:
                             latest_data_in_database = all_data_in_aqiref_orderby_time_desc[0] #!< tuple
                             print(latest_data_in_database)
-                            if int(time_of_data) == int(latest_data_in_database[11]):  #!< time is in index 11 of tuple lastest_data_in_database
+                            if int(time_of_data) == int(latest_data_in_database[0]):  #!< time is in index 11 of tuple lastest_data_in_database
                                 print("This time've already in database")
                                 is_there_record_to_save = False
                                 break
@@ -341,7 +341,7 @@ def getDataForAqiRef():
                 print(record) 
                 cursor.execute(query, record)
                 print("Successfully insert AQI REF to PostgreSQL")
-                print(f"Date_time: {datetime.fromtimestamp(data['info']['time'] - 7*60*60)}")
+                print(f"Date_time: {datetime.fromtimestamp(time_of_data - 7*60*60)}")
                 cursor.close()
                 conn.close()                       
         except:
