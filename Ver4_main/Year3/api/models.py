@@ -134,9 +134,12 @@ class ControlSetpoint(models.Model):
                                 db_column="room_id",                        
                                 )
     node_id = models.IntegerField(null=True, db_column="node_id",)
-    option = models.TextField(db_column="option")
-    aim = models.TextField(db_column="aim")
-    value = models.FloatField(db_column="value")
+    device_type = models.TextField(null=True, db_column="device_type",)
+    power = models.IntegerField(null=True, db_column="power",)      #1=On, 0=Off
+    temp = models.IntegerField(null=True, db_column="temp",)
+    start_time = models.BigIntegerField(null=True, db_column="start_time")
+    end_time = models.BigIntegerField(null=True, db_column="end_time")
+    status = models.IntegerField(null=True, db_column="status")     #1=Successful, 0=Unsuccessful
     time = models.BigIntegerField(db_column="time")
     def __str__(self):
         return self.time

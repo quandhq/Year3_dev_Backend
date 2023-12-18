@@ -13,7 +13,8 @@ backend_topic_dictionary = {"get_sensor_data": "farm/monitor/sensor",
                         "get_setpoint": "farm/control",
                         "room_sync_gateway_backend": "farm/sync_room",
                         "set_timer": "farm/set_timer",
-                        "node_sync_backend_gateway": "farm/sync_node"}
+                        "node_sync_backend_gateway": "farm/sync_node",
+                        "set_actuator": "farm/control",}
 
 client = Client(mqtt_topic,[backend_topic_dictionary["set_timer"], backend_topic_dictionary["node_sync_backend_gateway"]])
 mqtt_broker = broker     
@@ -193,48 +194,59 @@ def send_timer_to_gateway(client: Client, data: dict):
                     break
     return result
 
-def send_actuator_command_to_gateway(client: Client, data: dict):
-    
-    
-    #CONTINUE FINISHING THIS
-    result = 1
-    # topic = backend_topic_dictionary["set_timer"]
-    # date = int((datetime.datetime.now()).timestamp()) + 7*60*60         #time to save to database
-    # print(date)
-    # print(f"data in send_timer is {data}")
-    # new_data = { 
-    #             "operator": "set_timer", 
-    #             "info": 
-    #             { 
-    #                 "room_id": data["room_id"],         
-    #                 "time": data["timer"],
-    #                 "temperature": data["temperature"], 
-    #             } 
-    #         }
-    
-    # msg = json.dumps(new_data)
-    # result = client.publish(topic, msg)
-    # status = result[0]
-    # if status == 0:
-    #     print("Successfully send timer turn on air-conditioning message!!!")
-    # # print(f"Succesfully send '{msg}' to topic '{topic}'")
-    #     pass
-    # else:
-    #     raise Exception("Can't publish data to mqtt..........................!")
 
-    # result = 0
-    # curent_time = int((datetime.datetime.now()).timestamp())
-    # while(1):
-    #     if int((datetime.datetime.now()).timestamp()) - curent_time > 2: 
-    #         break
-    #     temp = client.msg_arrive()
-    #     if temp != None:
-    #                 print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
-    #                 msg = json.loads(temp)
-    #                 if msg["operator"] == "set_timer_ack":
-    #                     if msg["info"]["status"] == 1:
-    #                         result = 1
-    #                         break
+def send_actuator_command_to_gateway(client: Client, data: dict):
+    topic = backend_topic_dictionary["set_actuator"]
+    date = int((datetime.datetime.now()).timestamp()) + 7*60*60         #time to save to database
+    print(date)
+    print(f"data in send_actuator_command_to_gateway is {data}")
+    new_data = None
+    device_type = None
+    actuator_record = Registration.objects.filter(node_id = data["node_id"])[0]
+    actuator_record_data = str(actuator_record.function)
+    if actuator_record_data == "air":
+        device_type = "air_conditioner_control"
+    if actuator_record_data == "fam":
+        device_type = "fan_control"
+    
+    new_data = { 
+        "operator": "air_conditioner_control", 
+        "status": 1, 
+        "info": { 
+            "room_id": data["room_id"], 
+            "node_id": data["node_id"], 
+            "device_type": str(device_type), 
+            "power": data["power"],         #1=On, 0=Off
+            "temp": data["temp"], 
+            "start_time": data["start_time"],
+            "end_time": data["end_time"],
+            "time": date, 
+            },
+        } 
+    
+    msg = json.dumps(new_data)
+    result = client.publish(topic, msg)
+    status = result[0]
+    if status == 0:
+        print("Successfully send timer send command air-conditioning message!!!")
+    # print(f"Succesfully send '{msg}' to topic '{topic}'")
+        pass
+    else:
+        raise Exception("Can't publish data to mqtt..........................!")
+
+    result = 0
+    curent_time = int((datetime.datetime.now()).timestamp())
+    while(1):
+        if int((datetime.datetime.now()).timestamp()) - curent_time > 5: 
+            break
+        temp = client.msg_arrive()
+        if temp != None:
+            print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
+            msg = json.loads(temp)
+            if msg["operator"] == "air_conditioner_control_ack ":
+                if msg["status"] == 1:
+                    result = 1
+                    break
     return result
     
 

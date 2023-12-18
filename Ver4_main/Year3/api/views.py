@@ -976,18 +976,28 @@ def setActuator(request, *args, **kwargs):
     try:
         command = json.loads(request.body)["command"]
         room_id = json.loads(request.body)["room_id"]
+        data_command = json.loads(request.body)
         print('______________________________')
+        print(data_command)
         print(command)
         print(room_id)
         print("++++++++++++++++++++++++++++++++++++++")
-        result = send_actuator_command_to_gateway(client, {"command": command})
+        result = send_actuator_command_to_gateway(client, data_command)
         new_data = None
-        if int(command) == 0:
-            new_data = {"room_id": room_id, 
-                            "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
-                            "node_id": 20,
-                            "speed": 0,
-                            "state": int(command),
+        if result == 1:
+            new_data = {room_id = models.ForeignKey(Room,
+                                verbose_name=("Refering to room that this is trying to set value for"),
+                                on_delete=models.CASCADE,
+                                null=False,     
+                                db_column="room_id",                        
+                                )
+    node_id = models.IntegerField(null=True, db_column="node_id",)
+    device_type = models.TextField(null=True, db_column="device_type",)
+    power = models.IntegerField(null=True, db_column="power",)      #1=On, 0=Off
+    temp = models.IntegerField(null=True, db_column="temp",)
+    start_time = models.BigIntegerField(null=True, db_column="start_time")
+    end_time = models.BigIntegerField(null=True, db_column="end_time")
+    time = models.BigIntegerField(db_column="time")
                             }
         else:
             new_data = {"room_id": room_id, 
