@@ -21,7 +21,6 @@ urlpatterns = [
     path('actuator_command', views.setActuator),
     path('configuration/room/all', views.getConfigurationRoomAll),  #!< api for InformationTag component
     path('configuration/room/command', views.configurationRoom),  #!< api for InformationTag component
-    path('configuration/node/command', views.configurationNode),  #!< api for InformationTag component
     path('aqi_ref', views.getAqiRef),  #!< api for AqiRef component
     path('signup', views.signUp),
     #______________________________________________________

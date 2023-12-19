@@ -206,7 +206,7 @@ def send_actuator_command_to_gateway(client: Client, data: dict):
     actuator_record_data = str(actuator_record.function)
     if actuator_record_data == "air":
         device_type = "air_conditioner_control"
-    if actuator_record_data == "fam":
+    if actuator_record_data == "fan":
         device_type = "fan_control"
     
     new_data = { 
@@ -235,6 +235,7 @@ def send_actuator_command_to_gateway(client: Client, data: dict):
         raise Exception("Can't publish data to mqtt..........................!")
 
     result = 0
+    new_data["info"]["result"] = result #add new field "result" to new_data["info"] variable
     curent_time = int((datetime.datetime.now()).timestamp())
     while(1):
         if int((datetime.datetime.now()).timestamp()) - curent_time > 5: 
@@ -245,9 +246,9 @@ def send_actuator_command_to_gateway(client: Client, data: dict):
             msg = json.loads(temp)
             if msg["operator"] == "air_conditioner_control_ack ":
                 if msg["status"] == 1:
-                    result = 1
+                    new_data["info"]["result"] = 1
                     break
-    return result
+    return new_data
     
 
 

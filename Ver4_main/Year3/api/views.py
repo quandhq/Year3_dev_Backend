@@ -474,8 +474,12 @@ def getRoomData(request, *args, **kwargs):
 			   #       34
 			   #    ],
 			   #    "hum": [
-			   #       93
-			   #    ]
+			    #       93
+			    #    ],
+                # "node_info": {
+                #             "sensor": [...],
+                #             "actuator": [...]},
+                # "room_size": {"x_length": ..., "y_length": ...}
 			   # }
 #           
 #######################################################################
@@ -969,9 +973,10 @@ def getActuatorStatus(request, *args, **kwargs):
 #      if there is none:
 #       []
 from .djangoClient import send_actuator_command_to_gateway, client
+from .serializers import ControlSetpointSerializer
 @api_view(["POST"])
 @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
-@permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
+@permission_classes([permissions.IsAuthenticated])              #!< permitted to use API only if JWT is authenticated
 def setActuator(request, *args, **kwargs):
     try:
         command = json.loads(request.body)["command"]
@@ -982,31 +987,30 @@ def setActuator(request, *args, **kwargs):
         print(command)
         print(room_id)
         print("++++++++++++++++++++++++++++++++++++++")
-        result = send_actuator_command_to_gateway(client, data_command)
-        new_data = None
-        if result == 1:
-            new_data = {room_id = models.ForeignKey(Room,
-                                verbose_name=("Refering to room that this is trying to set value for"),
-                                on_delete=models.CASCADE,
-                                null=False,     
-                                db_column="room_id",                        
-                                )
-    node_id = models.IntegerField(null=True, db_column="node_id",)
-    device_type = models.TextField(null=True, db_column="device_type",)
-    power = models.IntegerField(null=True, db_column="power",)      #1=On, 0=Off
-    temp = models.IntegerField(null=True, db_column="temp",)
-    start_time = models.BigIntegerField(null=True, db_column="start_time")
-    end_time = models.BigIntegerField(null=True, db_column="end_time")
-    time = models.BigIntegerField(db_column="time")
-                            }
-        else:
-            new_data = {"room_id": room_id, 
-                            "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
-                            "node_id": 20,
-                            "speed": 59,
-                            "state": int(command),
-                            }
-        new_data_serializer = RawActuatorMonitorSerializer(data=new_data)
+        data = send_actuator_command_to_gateway(client, data_command)
+        """_summary_
+           send_actuator_command_to_gateway will return this 
+                    new_data = { 
+                        "operator": "air_conditioner_control", 
+                        "status": 1, 
+                        "info": { 
+                            "room_id": data["room_id"], 
+                            "node_id": data["node_id"], 
+                            "device_type": str(device_type), 
+                            "power": data["power"],         #1=On, 0=Off
+                            "temp": data["temp"], 
+                            "start_time": data["start_time"],
+                            "end_time": data["end_time"],
+                            "time": date,
+                            "result": ... 0 or 1, 
+                            },
+                        } 
+        """
+        new_data = data["info"]
+        print("Actuator command")
+        print(new_data)
+
+        new_data_serializer = ControlSetpointSerializer(data=new_data)
         if new_data_serializer.is_valid():
             new_data_serializer.save()
         return Response({"Response": 1}, status=status.HTTP_200_OK)    

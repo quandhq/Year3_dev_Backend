@@ -44,6 +44,11 @@ class AqiRefSerializer(serializers.ModelSerializer):
       model = AqiRef
       fields = "__all__"
 
+class ControlSetpointSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = ControlSetpoint
+      fields = "__all__"
+
 
 ##
 # @brief Override the TokenObtainPairSerializer
