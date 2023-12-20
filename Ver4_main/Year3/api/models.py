@@ -103,8 +103,9 @@ class RawActuatorMonitor(models.Model):
                                 db_column="room_id",
                                 )
     node_id = models.IntegerField(null=False, db_column="node_id",)
+    device_type = models.TextField(null=False, db_column="device_type")
     speed = models.SmallIntegerField(db_column="speed")
-    state = models.SmallIntegerField(db_column="state")
+    temp = models.SmallIntegerField(db_column="temp")
     time = models.BigIntegerField(db_column="time")
     def __str__(self):
         return self.time
@@ -119,8 +120,9 @@ class ActuatorMonitor(models.Model):
                                 db_column="room_id",
                                 )
     node_id = models.IntegerField(null=False, db_column="node_id",)
+    device_type = models.TextField(null=False, db_column="device_type")
     speed = models.SmallIntegerField(db_column="speed")
-    state = models.SmallIntegerField(db_column="state")
+    temp = models.SmallIntegerField(db_column="temp")
     time = models.BigIntegerField(db_column="time")
     def __str__(self):
         return self.time
@@ -181,6 +183,31 @@ class AqiRef(models.Model):
     time = models.BigIntegerField(null = True, db_column="time")    #time
     dew = models.IntegerField(null = True, db_column="dew")
     wg = models.IntegerField(null = True, db_column="wg")
+
+
+class WeatherData(models.Model):
+    id = models.AutoField(primary_key=True)
+    lat = models.FloatField()
+    lon = models.FloatField()
+    timezone = models.CharField(max_length=255)
+    timezone_offset = models.IntegerField()
+    current_dt = models.BigIntegerField()
+    current_sunrise = models.BigIntegerField()
+    current_sunset = models.BigIntegerField()
+    current_temp = models.FloatField()
+    current_feels_like = models.FloatField()
+    current_pressure = models.IntegerField()
+    current_humidity = models.IntegerField()
+    current_dew_point = models.FloatField()
+    current_uvi = models.FloatField()
+    current_clouds = models.IntegerField()
+    current_visibility = models.IntegerField()
+    current_wind_speed = models.FloatField()
+    current_wind_deg = models.IntegerField()
+    current_wind_gust = models.FloatField(null=True, blank=True)
+    current_weather = models.JSONField()
+    def __str__(self):
+        return f"WeatherData - {self.id}, {self.lat}, {self.lon}"
     
     
     

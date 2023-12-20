@@ -535,9 +535,14 @@ def getRoomInformationTag(request, *args, **kwargs):
             sensor_node_information_in_this_room_list = RegistrationSerializer(
                             Registration.objects.filter(room_id=room_id, function="sensor", status="sync"), many=True).data #!< have to add many=True
             actuator_node_information_in_this_room_list = RegistrationSerializer(
-                            Registration.objects.filter(room_id=room_id, function="actuator", status="sync"), many=True).data  #!< have to add many=True
+                            Registration.objects.filter(room_id=room_id, status="sync"), many=True).data  #!< have to add many=True
+            real_actuator_node_information_in_this_room_list = []
+            for i in actuator_node_information_in_this_room_list:
+                if i["function"] != "sensor":
+                    real_actuator_node_information_in_this_room_list.append(i)
+            
             average_data_to_return["node_info"] = {"sensor": sensor_node_information_in_this_room_list,
-                                                    "actuator": actuator_node_information_in_this_room_list}
+                                                    "actuator": real_actuator_node_information_in_this_room_list}
             # 6. Get room size 
             room_size_data = RoomSerializer(Room.objects.filter(room_id=room_id), many=True).data #!< have to include many=True
             average_data_to_return["room_size"] = {"x_length": room_size_data[0]["x_length"], "y_length": room_size_data[0]["y_length"]}
@@ -947,20 +952,23 @@ def signUp(request, *args, **kwargs):
 #       urls: "api/actuator_status"
 
 @api_view(["GET"])
-@authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
-@permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
+# @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
+# @permission_classes([permissions.IsAuthenticated])              #!< permitted to use APi only if JWT is authenticated
 def getActuatorStatus(request, *args, **kwargs):
     room_id = request.GET.get("room_id")
+    node_id = request.GET.get("node_id")
     print(room_id)
-    if Registration.objects.filter(room_id=room_id, function="actuator").count() == 0:
-        return Response({"Response": "No actutor node data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    all_actuator_node_id_in_this_room = RegistrationSerializer(Registration.objects.filter(room_id=room_id, function="actuator"), many=True).data
-    actuator_id = all_actuator_node_id_in_this_room[0]["node_id"]
-    if RawActuatorMonitor.objects.filter(node_id=actuator_id).count() == 0:
+    print(node_id)
+    if Registration.objects.filter(room_id=room_id, node_id=node_id, status="sync").count() == 0:
+        return Response({"Response": "Actuator not available"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    actuator_node = RegistrationSerializer(Registration.objects.filter(room_id=room_id, node_id=node_id, status="sync"), many=True).data
+    data_actuator_node = actuator_node[0]
+    if RawActuatorMonitor.objects.filter(node_id=data_actuator_node["node_id"], room_id=data_actuator_node["room_id"]).count() == 0:
         print("No actuator status data")
         return Response({"Response": "No actutor status data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    all_actuator_data_in_this_room = RawActuatorMonitorSerializer(RawActuatorMonitor.objects.filter(room_id=room_id, node_id=actuator_id).order_by("-time"), many=True).data
-    return Response({"speed": all_actuator_data_in_this_room[0]["speed"]}, status=status.HTTP_200_OK) 
+    status_record = RawActuatorMonitorSerializer(RawActuatorMonitor.objects.filter(node_id=data_actuator_node["node_id"], room_id=data_actuator_node["room_id"]).order_by("-time"),
+                                                 many=True).data
+    return Response({"Response": status_record[0]}, status=status.HTTP_200_OK) 
 
 
 ##
@@ -975,17 +983,13 @@ def getActuatorStatus(request, *args, **kwargs):
 from .djangoClient import send_actuator_command_to_gateway, client
 from .serializers import ControlSetpointSerializer
 @api_view(["POST"])
-@authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
-@permission_classes([permissions.IsAuthenticated])              #!< permitted to use API only if JWT is authenticated
+# @authentication_classes([jwtauthentication.JWTAuthentication])  #!< use JWTAuthentication
+# @permission_classes([permissions.IsAuthenticated])              #!< permitted to use API only if JWT is authenticated
 def setActuator(request, *args, **kwargs):
     try:
-        command = json.loads(request.body)["command"]
-        room_id = json.loads(request.body)["room_id"]
         data_command = json.loads(request.body)
         print('______________________________')
         print(data_command)
-        print(command)
-        print(room_id)
         print("++++++++++++++++++++++++++++++++++++++")
         data = send_actuator_command_to_gateway(client, data_command)
         """_summary_

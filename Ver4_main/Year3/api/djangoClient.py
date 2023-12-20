@@ -196,6 +196,7 @@ def send_timer_to_gateway(client: Client, data: dict):
 
 
 def send_actuator_command_to_gateway(client: Client, data: dict):
+    data = data["info"]
     topic = backend_topic_dictionary["set_actuator"]
     date = int((datetime.datetime.now()).timestamp()) + 7*60*60         #time to save to database
     print(date)
@@ -244,7 +245,7 @@ def send_actuator_command_to_gateway(client: Client, data: dict):
         if temp != None:
             print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
             msg = json.loads(temp)
-            if msg["operator"] == "air_conditioner_control_ack ":
+            if msg["operator"] == "air_conditioner_control_ack":
                 if msg["status"] == 1:
                     new_data["info"]["result"] = 1
                     break

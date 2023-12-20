@@ -72,9 +72,11 @@ def insert_to_DB(topic,
         cursor.close()
         conn.close()
     elif topic == backend_topic_dictionary["get_actuator_data"]:
-        query = f'''INSERT INTO api_rawactuatormonitor (room_id, node_id, speed, state, time) 
-                  VALUES (%s, %s, %s, %s, %s)'''
-        record = (data["info"]["room_id"], data["info"]["node_id"], data['info']['speed'], data['info']['state'], data['info']['time'])
+        query = f'''INSERT INTO api_rawactuatormonitor (room_id, node_id, device_type, speed, temp, time) 
+                  VALUES (%s, %s, %s, %s, %s, %s)'''
+                  
+        
+        record = (data["info"]["room_id"], data["info"]["node_id"], data["info"]["device_type"],  data['info']['speed'], data["info"]["temp"], data['info']['time'])
         cursor.execute(query, record)
         print("Successfully insert ACTUATORRR to PostgreSQL")
         print(f"Date_time: {datetime.fromtimestamp(data['info']['time'] - 7*60*60)}")

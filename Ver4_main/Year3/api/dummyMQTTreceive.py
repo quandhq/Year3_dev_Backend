@@ -13,7 +13,7 @@ import mqtt
 import time
 import json
 broker = "27.71.227.1"
-client = mqtt.Client("testtopic", _topic_array=[backend_topic_dictionary["set_timer"]])
+client = mqtt.Client("farm/control")
 client.connect(broker, int(1883), 60)
 client.loop_start()
 while(1):
@@ -23,9 +23,9 @@ while(1):
         data = json.loads(temp)
         print(json.loads(temp))
         if data["operator"] == "set_timer":
-            client.publish(backend_topic_dictionary["set_timer"], json.dumps({
-                "operator": "set_timer_ack",
+            client.publish("farm/control", json.dumps({
+                "operator": "air_conditioner_control_ack",
                 "info": {
-                    "status": 1,
+                    "status": 0,
                 }
             }))
