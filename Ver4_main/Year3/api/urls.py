@@ -23,6 +23,7 @@ urlpatterns = [
     path('configuration/room/command', views.configurationRoom),  #!< api for InformationTag component
     path('configuration/node/command', views.configurationNode),  #!< api for InformationTag component
     path('aqi_ref', views.getAqiRef),  #!< api for AqiRef component
+    path('weatherdata', views.getWeatherdata),  #!< api for Weatherdata component
     path('signup', views.signUp),
     #______________________________________________________
 ]

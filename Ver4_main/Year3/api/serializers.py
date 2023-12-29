@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from api.models import Room, Registration, RawSensorMonitor, SensorMonitor
 from api.models import RawActuatorMonitor, ActuatorMonitor, ControlSetpoint, SetTimerHistory, NodeConfigBuffer
-from api.models import AqiRef
+from api.models import AqiRef, WeatherData
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -49,6 +49,10 @@ class ControlSetpointSerializer(serializers.ModelSerializer):
       model = ControlSetpoint
       fields = "__all__"
 
+class WeatherDataSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = WeatherData
+      fields = "__all__"      
 
 ##
 # @brief Override the TokenObtainPairSerializer
