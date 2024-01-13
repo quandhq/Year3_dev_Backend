@@ -806,7 +806,6 @@ def configurationRoom(request, *args, **kwargs):
 #               data in JSON format {"Response": ...} + status 
 from .djangoClient import sendNodeConfigToGateway, client
 from threading import Thread
-import asyncio
 from .models import NodeConfigBuffer
 from .serializers import NodeConfigBufferSerializer
 @api_view(["GET", "POST", "DELETE", "PUT"])
@@ -822,14 +821,16 @@ def configurationNode(request, *args, **kwargs):
             return Response(data_serializer.data, status=status.HTTP_200_OK)
         if request.method == "POST":
             new_data = json.loads(request.body)
-            new_data["time"] = int((datetime.datetime.now()).timestamp()) + 7*60*60
-            new_data["status"] = "sync"
             new_data_for_buffer = {
                 "action": 1,
                 "mac": new_data["mac"],
                 "room_id": new_data["room_id"],
                 "time": int((datetime.datetime.now()).timestamp()) + 7*60*60,
             }
+            
+            new_data["time"] = new_data_for_buffer["time"]  #both record in buffer and registration will have the same time data
+            new_data["status"] = "sync"
+            
             new_data_serializer = RegistrationSerializer(data=new_data)
             new_data_buffer_serialier = NodeConfigBufferSerializer(data=new_data_for_buffer)
             if new_data_serializer.is_valid():
@@ -863,6 +864,7 @@ def configurationNode(request, *args, **kwargs):
                 print("OK")
                 new_data_buffer_serialier = NodeConfigBufferSerializer(data=new_data_for_buffer)
                 if new_data_buffer_serialier.is_valid():
+                    print("????????????????????????")
                     new_data_buffer_serialier.save()
                     print("OK set data delete node to buffer")
                     t = Thread(target=sendNodeConfigToGateway, args=(client, new_data, "delete"))
@@ -975,7 +977,7 @@ def getActuatorStatus(request, *args, **kwargs):
 # @brief: This view is for frontend to send turn on or off command to actuator
 #
 # @params: 
-#       urls: "api/actuator_command"
+#       urls: ""http://127.0.0.1:8000/api/actuator_command""
 # @return:
 #  
 #      if there is none:

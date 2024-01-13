@@ -37,16 +37,18 @@ def sendNodeConfigToGateway(client: Client, data: dict, command):
         If not successull, delete the latest data but in database registration and also delete the one in buffer
         If successfull, update the one in registration with new node_id and delete the one in buffer.
         """
-        all_latest_data_waiting_in_buffer = NodeConfigBuffer.objects.filter(action=action).order_by("-id") #!< this is for detele if needed
+        all_latest_data_waiting_in_buffer = NodeConfigBuffer.objects.filter(action=action).order_by("id") #!< this is for detele if needed, ordered from first to last
         latest_data_waiting_in_buffer = all_latest_data_waiting_in_buffer[0]
         print("Node in buffer")
         print(latest_data_waiting_in_buffer.time)
         latest_data_waiting_in_buffer_data = (NodeConfigBufferSerializer(all_latest_data_waiting_in_buffer, 
                                                                    many=True).data)[0]
         #this is for delete if needed, or update node id of this record if needed
+        #get the data in registration that corresponds to this data in buffer
         latest_data_waiting_in_registration = Registration.objects.filter(room_id=latest_data_waiting_in_buffer_data["room_id"],
-                                                                          mac=latest_data_waiting_in_buffer_data["mac"])[0]
-        print("Node in registration")
+                                                                          mac=latest_data_waiting_in_buffer_data["mac"],
+                                                                          time=latest_data_waiting_in_buffer_data["time"])[0]
+        print("Node in registration<<<<<<<<<<<<,")
         print(latest_data_waiting_in_registration.id)
         
         new_data = None
@@ -112,7 +114,10 @@ def sendNodeConfigToGateway(client: Client, data: dict, command):
                     if msg["operator"] == "server_add_ack":
                         if msg["status"] == 1 or msg["status"] == 2:
                             latest_data_waiting_in_buffer.delete()
+                            print("_________________________________________")
+                            print(msg["info"]["node_id"])
                             latest_data_waiting_in_registration.node_id = msg["info"]["node_id"]
+                            print(latest_data_waiting_in_registration)
                             latest_data_waiting_in_registration.save()
                             print("Gateway accepted adding!")
                             print(f"Finish update new node_id {latest_data_waiting_in_registration.node_id}")
@@ -203,15 +208,16 @@ def send_actuator_command_to_gateway(client: Client, data: dict):
     print(f"data in send_actuator_command_to_gateway is {data}")
     new_data = None
     device_type = None
-    actuator_record = Registration.objects.filter(node_id = data["node_id"])[0]
+    actuator_record = Registration.objects.filter(room_id = data["room_id"], node_id = data["node_id"])[0]
     actuator_record_data = str(actuator_record.function)
+    print(actuator_record_data)
     if actuator_record_data == "air":
         device_type = "air_conditioner_control"
     if actuator_record_data == "fan":
         device_type = "fan_control"
     
     new_data = { 
-        "operator": "air_conditioner_control", 
+        "operator": "server_control", 
         "status": 1, 
         "info": { 
             "room_id": data["room_id"], 
@@ -224,6 +230,8 @@ def send_actuator_command_to_gateway(client: Client, data: dict):
             "time": date, 
             },
         } 
+    
+
     
     msg = json.dumps(new_data)
     result = client.publish(topic, msg)
@@ -245,7 +253,7 @@ def send_actuator_command_to_gateway(client: Client, data: dict):
         if temp != None:
             print(f"RRRRRRRRRRRRRRRReceived `{temp}` from topic `{topic}`")
             msg = json.loads(temp)
-            if msg["operator"] == "air_conditioner_control_ack":
+            if msg["operator"] == "server_control_ack":
                 if msg["status"] == 1:
                     new_data["info"]["result"] = 1
                     break

@@ -162,7 +162,7 @@ class SetTimerHistory(models.Model):
 class NodeConfigBuffer(models.Model):
     id = models.BigAutoField(primary_key=True, db_column="id")
     action = models.IntegerField(null=False, db_column="action")
-    mac = models.TextField(null=False, db_column="mac", unique=True)
+    mac = models.TextField(null=False, db_column="mac")
     room_id = models.IntegerField(null=False, db_column="room_id")
     time = models.BigIntegerField(null=False, db_column="time")
     
