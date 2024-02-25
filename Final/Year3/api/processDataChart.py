@@ -1,119 +1,214 @@
-from .models import RawSensorMonitor
+from .models import RawSensorMonitor, Registration
+from api import models
+from .serializers import RawSensorMonitorSerializer, RegistrationSerializer
 import pandas as pd
 import datetime
 
-def getOptionDayData(day, room_id=None, node_id=None,):
-    # http://localhost:8000/api/v1.1/monitor/data/history?farm_id=1&time_start=1684765622&time_end=1684765622&option=day
-    print("state time line")
-    print(day)
-    print(room_id)
+def getOptionDayData(time_start, time_end, room_id=None, node_id=None,):
     print(node_id)
-    print(datetime.datetime.fromtimestamp(day+25200).day)
-    sensorMonitorList = 0
+    dict_filter = {"1D": 1, "1W": 2, "1M": 3, "3M": 4, "1Y": 5}
+    #Notice that: the timestamp in database is the utc timestamp + 7hour
+    #Our local time stamp is faster than than the utc timestamp 7 hour
+    filter_time = time_start + 25200
+    filter_time_end = time_end + 25200
+    if time_start == time_end:
+        filter_time_end = time_start + 25200 + 24*60*60
+    parameter_key_list = ["co2", "temp", "hum", "light", 
+                            "dust", "sound", "red", "green", 
+                            "blue", "tvoc", "motion", "time"]
+    
+    #Get all the node_id that is now presented in room
+    sensor_node_id_list = [i["node_id"] for i in RegistrationSerializer(models.Registration.objects.filter(room_id=room_id, function="sensor"), many=True).data] #!< have to add many=True
+    #Get all 100 record for each node_id and put all in an list
+    total_list = []
     if node_id == 0:
-        sensorMonitorList = RawSensorMonitor.objects.filter(time__gt=day, room_id=room_id)   #time__gt = "time greater than"
+        print(filter_time)
+        for each_node_id in sensor_node_id_list:
+            if models.RawSensorMonitor.objects.filter(time__gt=filter_time, time__lte=filter_time_end, room_id=room_id, node_id=each_node_id).count() > 0:
+                data = RawSensorMonitorSerializer(models.RawSensorMonitor.objects.filter(time__gt=filter_time, time__lte=filter_time_end, room_id=room_id, node_id=each_node_id).order_by("-time"), many=True).data #!< have to add many=True
+                data.reverse()
+                total_list.append(data)
     else:
-        sensorMonitorList = RawSensorMonitor.objects.filter(time__gt=day, room_id=room_id, node_id=node_id)   #time__gt = "time greater than"
-    list_co2 = []
-    list_temp = []
-    list_hum  = []
-    list_light = []
-    list_dust = []
-    list_sound = []
-    list_red = []
-    list_green = []
-    list_blue = []
-    list_tvoc = []
-    list_motion = []
-    list_time = []
-    parameter_key_list = ["timestamp", "co2", "temp", "hum", "light", 
-                         "dust", "sound", "red", "green", 
-                         "blue", "tvoc", "motion"]
-    data = {}
-    for i in parameter_key_list:
-        data[i] = []
-    # data = {
-    #     'timestamp': list_time,
-    #     'co2': list_co2,
-    #     'temp': list_temp,
-    #     'hum': list_hum,
+        if models.RawSensorMonitor.objects.filter(time__gt=filter_time, time__lte=filter_time_end, room_id=room_id, node_id=node_id).count() > 0:
+            data = RawSensorMonitorSerializer(models.RawSensorMonitor.objects.filter(time__gt=filter_time, time__lte=filter_time_end, room_id=room_id, node_id=node_id).order_by("-time"), many=True).data #!< have to add many=True
+            data.reverse()
+            total_list.append(data) 
+        
 
-    # }
-    for sensorData in sensorMonitorList:
+
+    if len(total_list) == 0:
+        return_data = {}
         for i in parameter_key_list:
-            if i == "timestamp":
-                data[i].append(sensorData.__dict__["time"])
+            return_data[i] = []
+        return return_data 
+    #!< Get an average data of each group of records id (ignore the 0 value) and the time of one record (latest) and add them to return data 
+
+    for i in total_list:
+        print(len(i))
+    print("////....")
+    min_len_of_array_in_total_list = min([len(i) for i in total_list])
+    max_len_of_array_in_total_list = max([len(i) for i in total_list])
+    print(min_len_of_array_in_total_list)
+    print(max_len_of_array_in_total_list)
+    # total_list = [i[-min_len_of_array_in_total_list:] for i in total_list]
+    for i in total_list:
+        print(len(i))
+
+    for i in total_list:
+        if len(i) < max_len_of_array_in_total_list:
+            for j in range(0, max_len_of_array_in_total_list - len(i)):
+                i.insert(0, {k: -1 for k in parameter_key_list})
+
+    for i in total_list:
+        print(len(i))
+
+    
+    return_data = {}
+    buffer = {}
+    for i in parameter_key_list:
+        return_data[i] = []
+        if i != "time":
+            buffer[i] = {"value": 0, "number": 0}
+        else:
+            buffer[i] = []    #!< is used to get the max value of time
+    print(len(total_list[0]))
+    for i in range(len(total_list[0])):
+        for each_element_in_total_list in total_list:
+            for j in  parameter_key_list:
+                if j != "time" and each_element_in_total_list[i][j] >= 0:
+                    buffer[j]["value"] = buffer[j]["value"] +  each_element_in_total_list[i][j]
+                    buffer[j]["number"] = buffer[j]["number"] +  1
+                elif j == "time" and each_element_in_total_list[i][j] >= 0:
+                    buffer[j].append(each_element_in_total_list[i][j])
+                else:
+                    continue
+        for j in parameter_key_list:
+            if j == "time":
+                return_data[j].append(max(buffer[j])) 
+                buffer[j] = []  #!< reset value
             else:
-                data[i].append(sensorData.__dict__[i])
-    # data['timestamp'].append(sensorData.__dict__['time'])
-    # data['co2'].append(sensorData.__dict__['co2'])
-    # data['temp'].append(sensorData.__dict__['temp'])
-    # data['hum'].append(sensorData.__dict__['hum'])
+                if buffer[j]["number"] != 0:
+                    return_data[j].append(round(buffer[j]["value"]/(buffer[j]["number"]),2 ))	
+                else:
+                    return_data[j].append(0)
+                buffer[j]["value"] = 0
+                buffer[j]["number"] = 0
+    return return_data
+        
 
-    table = pd.DataFrame(data)
-    table.sort_values(by='timestamp', inplace=True)
-    table.drop_duplicates(subset='timestamp', inplace=True)
-    table['timestamp'] += 3600*7
-    table['datetime'] = pd.to_datetime(table['timestamp'], unit='s')
-    table['day'] = table['datetime'].dt.day
-    table['hour'] = table['datetime'].dt.hour
-    print(table)
-    table = table.loc[table['day'] == datetime.datetime.fromtimestamp(day+25200).day]
-    table1 = table.groupby(['hour'], as_index=False).mean()
 
-    new_parameter_key_list = ["co2", "temp", "hum", "light", 
-                         "dust", "sound", "red", "green", 
-                         "blue", "tvoc", "motion"]
-    for i in new_parameter_key_list:
-        table1[i] = round(table1[i], 0)
-    # table1['co2'] = round(table1['co2'],0)
-    # table1['temp'] = round(table1['temp'],0)
-    # table1['hum'] = round(table1['hum'],0)
-    print(table1)
-    listHours = [*range(1, 25)]
-    for i in table1.index:
-        if table1.loc[i, 'hour'] in listHours:
-            listHours.remove(table1.loc[i, 'hour'])
-    extra_data = {
-        'hour': [],
-        'co2': [],
-        'temp': [],
-        'hum': [],
-        "light": [], 
-        "dust": [], 
-        "sound": [], 
-        "red": [], 
-        "green": [], 
-        "blue": [], 
-        "tvoc": [],
-        "motion": [],
-    }
-    for hour in listHours:
-        for key in extra_data:
-            if str(key) == "hour":
-                extra_data[key].append(hour)
-            else: 
-                extra_data[key].append(0)
-    extra_df = pd.DataFrame(extra_data)
-    table1 = pd.concat([table1, extra_df], ignore_index=True)
-    table_result = table1.sort_values(by='hour')
-    listTime = []    
-    for i in table_result['hour'].tolist():
-        listTime.append(int(float(str(i))))
+# def getOptionDayData(day, room_id=None, node_id=None,):
+#     # http://localhost:8000/api/v1.1/monitor/data/history?farm_id=1&time_start=1684765622&time_end=1684765622&option=day
+#     print("state time line")
+#     print(day)
+#     print(room_id)
+#     print(node_id)
+#     print(datetime.datetime.fromtimestamp(day+25200).day)
+#     sensorMonitorList = 0
+#     if node_id == 0:
+#         sensorMonitorList = RawSensorMonitor.objects.filter(time__gt=day, room_id=room_id)   #time__gt = "time greater than"
+#     else:
+#         sensorMonitorList = RawSensorMonitor.objects.filter(time__gt=day, room_id=room_id, node_id=node_id)   #time__gt = "time greater than"
+#     list_co2 = []
+#     list_temp = []
+#     list_hum  = []
+#     list_light = []
+#     list_dust = []
+#     list_sound = []
+#     list_red = []
+#     list_green = []
+#     list_blue = []
+#     list_tvoc = []
+#     list_motion = []
+#     list_time = []
+#     parameter_key_list = ["timestamp", "co2", "temp", "hum", "light", 
+#                          "dust", "sound", "red", "green", 
+#                          "blue", "tvoc", "motion"]
+#     data = {}
+#     for i in parameter_key_list:
+#         data[i] = []
+#     # data = {
+#     #     'timestamp': list_time,
+#     #     'co2': list_co2,
+#     #     'temp': list_temp,
+#     #     'hum': list_hum,
 
-    new_parameter_key_list = ["co2", "temp", "hum", "light", 
-                         "dust", "sound", "red", "green", 
-                         "blue", "tvoc", "motion"]
-    data_return = {}
-    for i in new_parameter_key_list:
-        data_return[i] = table_result[i].tolist()
-    data_return["time"] = listTime   
-    # listCo2 = table_result['co2'].tolist()
-    # listTemp = table_result['hum'].tolist()
-    # listHum = table_result['temp'].tolist()
-    print(table_result)
-    # return {"time": listTime, "co2": listCo2, "temp": listTemp, "hum": listHum}
-    return data_return
+#     # }
+#     for sensorData in sensorMonitorList:
+#         for i in parameter_key_list:
+#             if i == "timestamp":
+#                 data[i].append(sensorData.__dict__["time"])
+#             else:
+#                 data[i].append(sensorData.__dict__[i])
+#     # data['timestamp'].append(sensorData.__dict__['time'])
+#     # data['co2'].append(sensorData.__dict__['co2'])
+#     # data['temp'].append(sensorData.__dict__['temp'])
+#     # data['hum'].append(sensorData.__dict__['hum'])
+
+#     table = pd.DataFrame(data)
+#     table.sort_values(by='timestamp', inplace=True)
+#     table.drop_duplicates(subset='timestamp', inplace=True)
+#     table['timestamp'] += 3600*7
+#     table['datetime'] = pd.to_datetime(table['timestamp'], unit='s')
+#     table['day'] = table['datetime'].dt.day
+#     table['hour'] = table['datetime'].dt.hour
+#     print(table)
+#     table = table.loc[table['day'] == datetime.datetime.fromtimestamp(day+25200).day]
+#     table1 = table.groupby(['hour'], as_index=False).mean()
+
+#     new_parameter_key_list = ["co2", "temp", "hum", "light", 
+#                          "dust", "sound", "red", "green", 
+#                          "blue", "tvoc", "motion"]
+#     for i in new_parameter_key_list:
+#         table1[i] = round(table1[i], 0)
+#     # table1['co2'] = round(table1['co2'],0)
+#     # table1['temp'] = round(table1['temp'],0)
+#     # table1['hum'] = round(table1['hum'],0)
+#     print(table1)
+#     listHours = [*range(1, 25)]
+#     for i in table1.index:
+#         if table1.loc[i, 'hour'] in listHours:
+#             listHours.remove(table1.loc[i, 'hour'])
+#     extra_data = {
+#         'hour': [],
+#         'co2': [],
+#         'temp': [],
+#         'hum': [],
+#         "light": [], 
+#         "dust": [], 
+#         "sound": [], 
+#         "red": [], 
+#         "green": [], 
+#         "blue": [], 
+#         "tvoc": [],
+#         "motion": [],
+#     }
+#     for hour in listHours:
+#         for key in extra_data:
+#             if str(key) == "hour":
+#                 extra_data[key].append(hour)
+#             else: 
+#                 extra_data[key].append(0)
+#     extra_df = pd.DataFrame(extra_data)
+#     table1 = pd.concat([table1, extra_df], ignore_index=True)
+#     table_result = table1.sort_values(by='hour')
+#     listTime = []    
+#     for i in table_result['hour'].tolist():
+#         listTime.append(int(float(str(i))))
+
+#     new_parameter_key_list = ["co2", "temp", "hum", "light", 
+#                          "dust", "sound", "red", "green", 
+#                          "blue", "tvoc", "motion"]
+#     data_return = {}
+#     for i in new_parameter_key_list:
+#         data_return[i] = table_result[i].tolist()
+#     data_return["time"] = listTime   
+#     # listCo2 = table_result['co2'].tolist()
+#     # listTemp = table_result['hum'].tolist()
+#     # listHum = table_result['temp'].tolist()
+#     print(table_result)
+#     # return {"time": listTime, "co2": listCo2, "temp": listTemp, "hum": listHum}
+#     return data_return
 
 
 def getOptionMonthData(time_start, time_end, room_id=None, node_id=None,):

@@ -353,6 +353,8 @@ def getDataForAqiRef():
                     continue
                 query = f'''INSERT INTO api_aqiref (aqi, pm25, pm10, o3, no2, so2, co, t, p, h, w, time, dew, wg) 
                         VALUES (%s, %s, %s, %s ,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'''
+                        
+                #["aqi", "pm25", "pm10", "o3", "no2", "so2", "co", "t", "p", "h", "w", "time", "dew", "wg"]
                 record = () #!< empty tuple
                 for i in dict_key:
                     record = record + (new_data[i], )   #!< create a tupble of one element "data["info"][i]" and concatenate it to record

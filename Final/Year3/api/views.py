@@ -53,8 +53,8 @@ print("Setting views.py")
 #              "dust":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]}
 ###############################################################
 @api_view(["POST", "GET"])
-@authentication_classes([jwtauthentication.JWTAuthentication])
-@permission_classes([permissions.IsAuthenticated])
+# @authentication_classes([jwtauthentication.JWTAuthentication])
+# @permission_classes([permissions.IsAuthenticated])
 def getSensorSecondlyData(request , *args, **kwargs):
     try: 
         room_id = int(request.GET.get("room_id"))   #!< the query parameter is in string form
@@ -62,7 +62,7 @@ def getSensorSecondlyData(request , *args, **kwargs):
         node_id = int(request.GET.get("node_id"))
         print(node_id)
         print(filter)
-        dict_filter = {"1D": 1, "1W": 2, "1M": 3, "6M": 4, "1Y": 5}
+        dict_filter = {"1D": 1, "1W": 2, "1M": 3, "3M": 4, "1Y": 5}
         #Notice that: the timestamp in database is the utc timestamp + 7hour
         #Our local time stamp is faster than than the utc timestamp 7 hour
         ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
@@ -75,7 +75,7 @@ def getSensorSecondlyData(request , *args, **kwargs):
         elif filter == 3:
             filter_time = ctime - ctime%(24*60*60) - 24*60*60*31
         elif filter == 4:
-            filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*6
+            filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*3
         elif filter == 5:
             filter_time = ctime - ctime%(24*60*60) - 24*60*60*31*12
         else:
@@ -364,7 +364,7 @@ def historyChart(request, *args, **kwargs):
             print(str(option), int(room_id), int(node_id), int(time_start), int(time_end))
             result_data = None
             if(option == "day"): 
-                result_data = getOptionDayData(int(time_start), int(room_id), int(node_id))
+                result_data = getOptionDayData(int(time_start), int(time_end), int(room_id), int(node_id))
                 return Response(result_data, status=status.HTTP_200_OK)      
             elif(option == "month"):
                 result_data = getOptionMonthData(int(time_start), int(time_end), int(room_id), int(node_id))
@@ -586,7 +586,7 @@ def AQIdustpm2_5(request, *args, **kwargs):
         ctime = int((datetime.datetime.now()).timestamp()) + (7*60*60) #!< convert to our local timestamp
         print(ctime)
         #calculate hourly data
-        latest_time = int(RawSensorMonitor.objects.order_by("-time")[0].time)
+        latest_time = int(RawSensorMonitor.objects.filter(room_id=room_id, dust__gt=0).order_by("-time")[0].time)
         print(latest_time)
         print("____________________________________________________________")
         filter_time = latest_time - 12*60*60

@@ -1,0 +1,7 @@
+1. download folder "final"
+2. cd into folder "final"
+3. create a python virtual enviroment
+4. turn virtual enviroment on
+5. dowload all packages required that lied in file "requirements.txt"
+6. cd into "Year3"
+7. run command "runserver"
